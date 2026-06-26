@@ -5,33 +5,28 @@ from typing import Set, Optional, List
 import chess
 import chess.pgn
 
-class BookChecker:
 
+class BookChecker:
     def __init__(self, books_dir: str = "Books"):
         self.books_dir = books_dir
         self.book_moves: Set[str] = set()
         self._loaded = False
 
     def load_books(self) -> int:
-
         self.book_moves.clear()
         count = 0
 
         if not os.path.isdir(self.books_dir):
+            self._loaded = True
             return 0
 
         for filepath in glob.glob(os.path.join(self.books_dir, "*")):
             ext = os.path.splitext(filepath)[1].lower()
             try:
-                if ext in (".pgn", ".txt"):
+                if ext == ".pgn":
                     n = self._load_pgn_book(filepath)
                     count += n
-                elif ext == ".bin":
-
-                    n = self._load_polyglot_book(filepath)
-                    count += n
-                elif ext == ".bk":
-
+                elif ext == ".txt" or ext == ".bk":
                     n = self._load_text_book(filepath)
                     count += n
             except Exception as e:
@@ -41,162 +36,130 @@ class BookChecker:
         return count
 
     def _load_pgn_book(self, filepath: str) -> int:
-
-        count = 0
-        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-            content = f.read()
-
-        while content:
-            game = chess.pgn.read_game(chess.io.StringIO(content))
-            if game is None:
-                break
-
-            board = chess.Board()
-            node = game
-            while node.variations:
-                node = node.variations[0]
-                move = node.move
-                fen = board.fen()
-
-                self.book_moves.add(f"{fen}|{move.uci()}")
-                count += 1
-                board.push(move)
-
-            idx = content.find("\n\n", content.find("]"))
-            if idx == -1:
-                break
-            content = content[idx:].strip()
-
-        return count
-
-    def _load_polyglot_book(self, filepath: str) -> int:
-
         count = 0
         try:
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
 
-            with open(filepath, "rb") as f:
-                data = f.read()
+            games_text = []
+            current_game = []
+            in_game = False
+            for line in content.split('\n'):
+                if line.strip().startswith('[') and not in_game:
+                    in_game = True
+                    current_game = [line]
+                elif line.strip().startswith('[') and in_game:
+                    current_game.append(line)
+                elif line.strip() and in_game:
+                    current_game.append(line)
+                elif not line.strip() and in_game:
+                    if current_game:
+                        games_text.append('\n'.join(current_game))
+                    current_game = []
+                    in_game = False
 
-            entry_size = 16
-            for i in range(0, len(data), entry_size):
-                if i + entry_size > len(data):
-                    break
+            if current_game:
+                games_text.append('\n'.join(current_game))
 
-                entry = data[i:i + entry_size]
-
-                key = int.from_bytes(entry[:8], 'big')
-
-                move_data = int.from_bytes(entry[8:10], 'big')
-
-                weight = int.from_bytes(entry[10:12], 'big')
-
-                if weight == 0:
-                    continue
-
-                from_sq = (move_data >> 6) & 0x3F
-                to_sq = move_data & 0x3F
-                promotion = (move_data >> 12) & 0x7
-
-                if not (0 <= from_sq < 64 and 0 <= to_sq < 64):
-                    continue
-
-                promo_piece = None
-                if promotion:
-                    promo_map = {1: chess.KNIGHT, 2: chess.BISHOP,
-                                 3: chess.ROOK, 4: chess.QUEEN}
-                    promo_piece = promo_map.get(promotion)
-
+            for game_text in games_text:
                 try:
-                    move = chess.Move(from_sq, to_sq, promotion=promo_piece)
+                    game = chess.pgn.read_game(chess.io.StringIO(game_text))
+                    if game is None:
+                        continue
 
-                    self.book_moves.add(f"any|{move.uci()}")
-                    count += 1
+                    board = chess.Board()
+                    node = game
+                    while node.variations:
+                        node = node.variations[0]
+                        move = node.move
+                        fen = board.fen()
+                        self.book_moves.add(f"{fen}|{move.uci()}")
+                        count += 1
+                        board.push(move)
                 except:
                     continue
-        except:
-            pass
+        except Exception as e:
+            print(f"Error loading PGN book {filepath}: {e}")
 
         return count
 
     def _load_text_book(self, filepath: str) -> int:
-
         count = 0
-        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and not line.startswith("//"):
+        try:
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#") or line.startswith("//"):
+                        continue
 
                     if "|" in line:
                         self.book_moves.add(line)
-                    else:
-                        self.book_moves.add(f"any|{line}")
-                    count += 1
+                        count += 1
+        except Exception as e:
+            print(f"Error loading text book {filepath}: {e}")
         return count
 
     def is_book_move(self, board: chess.Board, move: chess.Move) -> bool:
-
         if not self._loaded:
             self.load_books()
+
+        if not self.book_moves:
+            return False
 
         fen = board.fen()
         move_uci = move.uci()
 
-        if f"{fen}|{move_uci}" in self.book_moves:
-            return True
+        return f"{fen}|{move_uci}" in self.book_moves
 
-        if f"any|{move_uci}" in self.book_moves:
-            return True
-
-        return False
 
 class MoveClassifier:
-
     def __init__(self, book_checker: Optional[BookChecker] = None):
         self.book_checker = book_checker or BookChecker()
 
     def classify(self, board_before: chess.Board, played_move: chess.Move,
-                 best_move: Optional[chess.Move], eval_before: Optional[float],
-                 eval_after: Optional[float] = None, depth: int = 0) -> str:
+                best_move: Optional[chess.Move], eval_before: Optional[float],
+                eval_after: Optional[float] = None, depth: int = 0) -> str:
 
         if self.book_checker.is_book_move(board_before, played_move):
             return "Book"
 
         is_best = (played_move == best_move or
-                   (best_move is not None and played_move.uci() == best_move.uci()))
+                (best_move is not None and played_move.uci() == best_move.uci()))
 
-        if is_best:
-            return "Best"
-
-        if eval_before is None:
+        if eval_before is None or eval_after is None:
+            if is_best:
+                return "Best"
             if best_move is None:
                 return "Excellent"
             return "Good"
-
-        if eval_after is not None:
-
-            loss_before = eval_before
-            loss_after = -eval_after
-            loss = loss_before - loss_after
+        
+        if board_before.turn == chess.WHITE:
+            eval_after_fixed = -eval_after
+            loss = eval_before - eval_after_fixed
         else:
-
-            loss = 0.5
-
+            black_before = eval_before
+            black_after = -eval_after
+            loss = black_before - black_after
         if loss < 0:
             loss = 0
 
         if loss < 0.01:
-            return "Best"
+            classification = "Best"
+        elif loss < 0.3:
+            classification = "Excellent"
+        elif loss < 0.9:
+            classification = "Good"
+        elif loss < 1.2:
+            classification = "Inaccuracy"
+        elif loss < 2.5:
+            classification = "Mistake"
+        else:
+            classification = "Blunder"
 
-        if loss < 0.3:
-            return "Excellent"
+        if not is_best and classification == "Best":
+            classification = "Excellent"
 
-        if loss < 0.7:
-            return "Good"
+        if is_best:
+            classification = "Best"
 
-        if loss < 1.2:
-            return "Inaccuracy"
-
-        if loss < 2.5:
-            return "Mistake"
-
-        return "Blunder"
+        return classification

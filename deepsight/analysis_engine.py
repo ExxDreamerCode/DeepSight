@@ -12,9 +12,11 @@ from .engine_manager import EngineManager, EngineProtocol
 from .models.game_state import GameState, MoveEval, AnalyzedMove
 from .move_classifier import MoveClassifier
 
+
 class AnalysisMode(Enum):
     FIXED = "fixed"
     LIVE = "live"
+
 
 class AnalysisEngine(QObject):
 
@@ -46,7 +48,6 @@ class AnalysisEngine(QObject):
         self._live_best_move: Optional[chess.Move] = None
 
     def start_analysis(self):
-
         if self._running:
             return
 
@@ -66,7 +67,6 @@ class AnalysisEngine(QObject):
         self._thread.start()
 
     def start_live_analysis(self):
-
         if self._running:
             self._restart_live()
             return
@@ -106,7 +106,6 @@ class AnalysisEngine(QObject):
             self.engine.start_analysis(infinite=True)
 
     def send_move(self, move: chess.Move):
-
         self.game_state.board.push(move)
 
         player = not self.game_state.board.turn
@@ -137,7 +136,6 @@ class AnalysisEngine(QObject):
         self.engine.start_analysis(infinite=True)
 
     def _parse_uci_line(self, line: str) -> tuple:
-
         if line.startswith("bestmove"):
             parts = line.split()
             if len(parts) > 1:
@@ -184,7 +182,6 @@ class AnalysisEngine(QObject):
         return (eval_data, best_move, False)
 
     def _analyze_all(self):
-
         total = len(self.game_state.moves)
         original_board = self.game_state.board.copy()
 
@@ -225,9 +222,10 @@ class AnalysisEngine(QObject):
                             break
 
                         if eval_data:
-                            last_eval = eval_data
-                            if bm:
-                                best_move = bm
+                            if last_eval is None or eval_data.depth > last_eval.depth:
+                                last_eval = eval_data
+                                if bm:
+                                    best_move = bm
 
                             self.live_updated.emit(eval_data, best_move, move_data.player)
 
@@ -245,19 +243,9 @@ class AnalysisEngine(QObject):
                 eval_before_num = last_eval.score_num if last_eval else None
                 final_depth = last_eval.depth if last_eval else 0
 
-                classification = self.classifier.classify(
-                    board_before=board_before,
-                    played_move=move_data.move,
-                    best_move=best_move,
-                    eval_before=eval_before_num,
-                    depth=final_depth
-                )
-
                 move_data.eval_before = last_eval
                 move_data.best_move = best_move
                 move_data.depth = final_depth
-                move_data.classification = classification
-
                 board_after = board_before.copy()
                 board_after.push(move_data.move)
                 self.engine.set_position(board_after)
@@ -297,42 +285,31 @@ class AnalysisEngine(QObject):
 
                 if after_eval:
                     move_data.eval_after = after_eval
-                    eval_after_num = after_eval.score_num
 
-                    new_class = self.classifier.classify(
+                if eval_before_num is not None and after_eval is not None:
+                    classification = self.classifier.classify(
                         board_before=board_before,
                         played_move=move_data.move,
                         best_move=best_move,
                         eval_before=eval_before_num,
-                        eval_after=eval_after_num,
+                        eval_after=after_eval.score_num,
                         depth=final_depth
                     )
-                    if new_class != move_data.classification:
-                        move_data.classification = new_class
-                        self.move_analyzed.emit(move_data)
+                    move_data.classification = classification
+                elif eval_before_num is not None:
+                    classification = self.classifier.classify(
+                        board_before=board_before,
+                        played_move=move_data.move,
+                        best_move=best_move,
+                        eval_before=eval_before_num,
+                        eval_after=None,
+                        depth=final_depth
+                    )
+                    move_data.classification = classification
                 else:
-                    eval_after_num = None
+                    move_data.classification = "Unknown"
 
                 self.move_analyzed.emit(move_data)
-
-                if idx > 0 and last_eval and last_eval.score_num is not None:
-                    prev_move = self.game_state.moves[idx - 1]
-                    prev_before = prev_move.eval_before.score_num if prev_move.eval_before else None
-                    if prev_before is not None:
-                        prev_eval_after = last_eval.score_num
-                        prev_depth = prev_move.depth or (after_eval.depth if after_eval else final_depth)
-                        new_class = self.classifier.classify(
-                            board_before=self.game_state.get_position_at(idx - 2),
-                            played_move=prev_move.move,
-                            best_move=prev_move.best_move,
-                            eval_before=prev_before,
-                            eval_after=prev_eval_after,
-                            depth=prev_depth
-                        )
-                        if new_class != prev_move.classification:
-                            prev_move.classification = new_class
-                            self.move_analyzed.emit(prev_move)
-
                 self.progress_changed.emit(idx + 1, total)
 
             self.game_state.board = original_board
@@ -349,7 +326,6 @@ class AnalysisEngine(QObject):
             self.engine.stop()
 
     def _live_loop(self):
-
         try:
             self.engine.set_position(self.game_state.board)
             self.engine.start_analysis(infinite=True)
