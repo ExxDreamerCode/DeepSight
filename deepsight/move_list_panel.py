@@ -1,11 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from typing import Optional, Dict, List
 from pathlib import Path
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                             QScrollArea, QFrame, QSizePolicy)
+                             QScrollArea, QFrame, QSizePolicy, QPushButton)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QPixmap, QFont
+from PyQt6.QtGui import QPixmap, QFont, QKeyEvent
 
 import chess
 
@@ -110,7 +110,6 @@ class MoveRow(QFrame):
 
         self.num_label = QLabel(f"{move_number}.")
         self.num_label.setFixedWidth(30)
-        self.num_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         font = QFont("Segoe UI", 10)
         self.num_label.setFont(font)
         self.num_label.setStyleSheet("color: #888;")
@@ -152,20 +151,21 @@ class IconLabel(QLabel):
             ))
         else:
             self.setText("")
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     @classmethod
     def _load_icons(cls):
         moves_dir = Path("Images/Moves")
-        for icon_file in moves_dir.glob("*.svg"):
-            name = icon_file.stem
-            pixmap = QPixmap(str(icon_file))
-            if not pixmap.isNull():
-                cls._icons[name] = pixmap
+        if moves_dir.exists():
+            for icon_file in moves_dir.glob("*.svg"):
+                name = icon_file.stem
+                pixmap = QPixmap(str(icon_file))
+                if not pixmap.isNull():
+                    cls._icons[name] = pixmap
 
 class MoveListPanel(QScrollArea):
 
     move_selected = pyqtSignal(int)
+    navigation_requested = pyqtSignal(str)  # "forward" РёР»Рё "back"
 
     def __init__(self, game_state: GameState, parent=None):
         super().__init__(parent)
@@ -197,49 +197,82 @@ class MoveListPanel(QScrollArea):
         self._rows.clear()
 
         moves = self.game_state.moves
+        if not moves:
+            empty_label = QLabel("No moves")
+            empty_label.setStyleSheet("color: #666; padding: 20px;")
+            self.layout.insertWidget(self.layout.count() - 1, empty_label)
+            self._rows.append(empty_label)
+            return
+
         i = 0
         while i < len(moves):
             if moves[i].player == chess.WHITE:
                 white = moves[i]
                 black = moves[i + 1] if i + 1 < len(moves) and moves[i + 1].player == chess.BLACK else None
-                self._rows.append(MoveRow(len(self._rows) + 1, white, black))
+                row = MoveRow(len(self._rows) + 1, white, black)
+                self._rows.append(row)
                 i += 2 if black else 1
             else:
-                self._rows.append(MoveRow(len(self._rows) + 1, None, moves[i]))
+                row = MoveRow(len(self._rows) + 1, None, moves[i])
+                self._rows.append(row)
                 i += 1
 
         for row in self._rows:
-            row.cell_clicked.connect(self._on_cell_clicked)
-            self.layout.insertWidget(self.layout.count() - 1, row)
+            if isinstance(row, MoveRow):
+                row.cell_clicked.connect(self._on_cell_clicked)
+                self.layout.insertWidget(self.layout.count() - 1, row)
 
     def _on_cell_clicked(self, move_index: int):
         if move_index < 0 or move_index >= len(self.game_state.moves):
             return
         self._select_move(move_index)
 
-    def _select_move(self, move_index: int):
+    def _select_move(self, move_index: int, emit_signal: bool = True):
         if move_index < 0 or move_index >= len(self.game_state.moves):
             return
         self._selected_index = move_index
 
         for row in self._rows:
-            row.select_cell(-1)
+            if isinstance(row, MoveRow):
+                row.select_cell(-1)
 
         for row in self._rows:
-            if row.white_cell.move_index == move_index:
-                row.select_cell(move_index)
-                break
-            if row.black_cell.move_index == move_index:
-                row.select_cell(move_index)
-                break
+            if isinstance(row, MoveRow):
+                if row.white_cell.move_index == move_index:
+                    row.select_cell(move_index)
+                    break
+                if row.black_cell.move_index == move_index:
+                    row.select_cell(move_index)
+                    break
 
-        self.move_selected.emit(move_index)
+        if emit_signal:
+            self.move_selected.emit(move_index)
 
-    def refresh(self):
+    def refresh(self, emit_signal: bool = False):
         self._build_list()
+        if 0 <= self._selected_index < len(self.game_state.moves):
+            self._select_move(self._selected_index, emit_signal=emit_signal)
 
     def scroll_to_move(self, move_index: int):
         for row in self._rows:
-            if row.white_cell.move_index == move_index or row.black_cell.move_index == move_index:
-                self.ensureWidgetVisible(row)
-                break
+            if isinstance(row, MoveRow):
+                if row.white_cell.move_index == move_index or row.black_cell.move_index == move_index:
+                    self.ensureWidgetVisible(row)
+                    break
+
+    def keyPressEvent(self, event: QKeyEvent):
+
+        if event.key() == Qt.Key.Key_Left:
+            self.navigation_requested.emit("back")
+            event.accept()
+        elif event.key() == Qt.Key.Key_Right:
+            self.navigation_requested.emit("forward")
+            event.accept()
+        elif event.key() == Qt.Key.Key_Home:
+            self.navigation_requested.emit("start")
+            event.accept()
+        elif event.key() == Qt.Key.Key_End:
+            self.navigation_requested.emit("end")
+            event.accept()
+        else:
+            super().keyPressEvent(event)

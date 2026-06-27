@@ -1,12 +1,11 @@
-from __future__ import annotations
-from typing import Optional
+﻿from typing import Optional
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout,
                              QStatusBar, QLabel, QProgressBar,
                              QMessageBox, QMenuBar, QMenu, QFileDialog,
                              QDialog, QVBoxLayout, QTextEdit, QPushButton)
 from PyQt6.QtCore import Qt, QTimer, QMutex, QMutexLocker
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QKeyEvent
 
 import chess
 
@@ -161,7 +160,106 @@ class MainWindow(QMainWindow):
         self.input_panel.clear_requested.connect(self._on_clear)
         self.board.move_made.connect(self._on_board_move)
         self.move_list.move_selected.connect(self._on_move_selected)
+        self.move_list.navigation_requested.connect(self._on_navigation_requested)
         self.input_panel.analysis_stopped.connect(self._stop_quick_eval)
+
+    def _on_navigation_requested(self, direction: str):
+        if direction == "forward":
+            self.game_state.go_forward()
+        elif direction == "back":
+            self.game_state.go_back()
+        elif direction == "start":
+            self.game_state.go_to_start()
+        elif direction == "end":
+            self.game_state.go_to_end()
+        else:
+            return
+
+        self._update_display_after_navigation()
+
+    def _update_display_after_navigation(self):
+        cur = self.game_state.current_move
+        idx = self.game_state.current_move_index
+        
+        self.board.update()
+        self.move_list.refresh()
+
+        self._quick_evaluate()
+        
+        if cur:
+            self.board.set_last_move(cur.move)
+            if cur.best_move:
+                self.board.set_best_move_arrow(cur.best_move.from_square, cur.best_move.to_square)
+            else:
+                self.board.clear_arrow()
+            
+            ev_after = cur.eval_after
+            ev_before_next = None
+            if idx + 1 < len(self.game_state.moves):
+                ev_before_next = self.game_state.moves[idx + 1].eval_before
+
+            if ev_after:
+                board_after = self.game_state.get_position_at(idx)
+                turn_after = board_after.turn
+                score_cp = ev_after.score_cp
+                mate = ev_after.mate
+                if turn_after == chess.BLACK:
+                    if score_cp is not None:
+                        score_cp = -score_cp
+                    if mate is not None:
+                        mate = -mate
+                self.eval_bar.set_eval(score_cp=score_cp, mate=mate, depth=ev_after.depth or 0)
+            elif ev_before_next:
+                next_move = self.game_state.moves[idx + 1]
+                score_cp = ev_before_next.score_cp
+                mate = ev_before_next.mate
+                if next_move.player == chess.BLACK:
+                    if score_cp is not None:
+                        score_cp = -score_cp
+                    if mate is not None:
+                        mate = -mate
+                self.eval_bar.set_eval(score_cp=score_cp, mate=mate, depth=ev_before_next.depth or 0)
+            elif cur.eval_before:
+                ev = cur.eval_before
+                score_cp = ev.score_cp
+                mate = ev.mate
+                if cur.player == chess.BLACK:
+                    if score_cp is not None:
+                        score_cp = -score_cp
+                    if mate is not None:
+                        mate = -mate
+                self.eval_bar.set_eval(score_cp=score_cp, mate=mate, depth=ev.depth or 0)
+            else:
+                self.eval_bar.clear()
+
+            if cur.eval_before or cur.eval_after:
+                if cur.classification:
+                    self.status_label.setText(f"Move {cur.move_number}: {cur.san} вЂ” {cur.classification}")
+                else:
+                    self.status_label.setText(f"Move {cur.move_number}: {cur.san}")
+            else:
+                self.status_label.setText(f"Move {cur.move_number}: {cur.san}")
+        else:
+            self.board.clear_arrow()
+            self.board.set_last_move(None)
+            self.eval_bar.clear()
+            self.status_label.setText("Start position")
+
+    def keyPressEvent(self, event: QKeyEvent):
+        if event.key() == Qt.Key.Key_Left:
+            self._on_navigation_requested("back")
+            event.accept()
+        elif event.key() == Qt.Key.Key_Right:
+            self._on_navigation_requested("forward")
+            event.accept()
+        elif event.key() == Qt.Key.Key_Home:
+            self._on_navigation_requested("start")
+            event.accept()
+        elif event.key() == Qt.Key.Key_End:
+            self._on_navigation_requested("end")
+            event.accept()
+        else:
+            super().keyPressEvent(event)
 
     def _debug(self, text: str):
         self._debug_dialog.append(text)
@@ -227,6 +325,7 @@ class MainWindow(QMainWindow):
         if self.game_state.current_move_index < len(self.game_state.moves) - 1:
             del self.game_state.moves[self.game_state.current_move_index + 1:]
             self.game_state.board = chess.Board()
+            self.game_state.board.set_fen(self.game_state._initial_fen)
             for m in self.game_state.moves:
                 self.game_state.board.push(m.move)
 
@@ -288,57 +387,20 @@ class MainWindow(QMainWindow):
         self.status_label.setText("Ready")
 
     def _on_move_selected(self, idx: int):
-        self.game_state.go_to_move(idx)
-        self.board.update()
-        cur = self.game_state.current_move
-
-        if cur:
-            self.board.set_last_move(cur.move)
-
-            if cur.best_move:
-                self.board.set_best_move_arrow(cur.best_move.from_square, cur.best_move.to_square)
-            else:
-                self.board.clear_arrow()
-
-            ev_after = cur.eval_after
-            ev_before_next = None
-            if idx + 1 < len(self.game_state.moves):
-                ev_before_next = self.game_state.moves[idx + 1].eval_before
-
-            if ev_after:
-                board_after = self.game_state.get_position_at(idx)
-                turn_after = board_after.turn
-                score_cp = ev_after.score_cp
-                if score_cp is not None and turn_after == chess.BLACK:
-                    score_cp = -score_cp
-                self.eval_bar.set_eval(score_cp=score_cp, mate=ev_after.mate, depth=ev_after.depth or 0)
-            elif ev_before_next:
-                next_move = self.game_state.moves[idx + 1]
-                score_cp = ev_before_next.score_cp
-                if score_cp is not None and next_move.player == chess.BLACK:
-                    score_cp = -score_cp
-                self.eval_bar.set_eval(score_cp=score_cp, mate=ev_before_next.mate, depth=ev_before_next.depth or 0)
-            elif cur.eval_before:
-                ev = cur.eval_before
-                score_cp = ev.score_cp
-                if score_cp is not None and cur.player == chess.BLACK:
-                    score_cp = -score_cp
-                self.eval_bar.set_eval(score_cp=score_cp, mate=ev.mate, depth=ev.depth or 0)
-            else:
-                self.eval_bar.clear()
-
-            if cur.eval_before or cur.eval_after:
-                if cur.classification:
-                    self.status_label.setText(f"Move {cur.move_number}: {cur.san} — {cur.classification}")
-                else:
-                    self.status_label.setText(f"Move {cur.move_number}: {cur.san}")
-            else:
-                self.status_label.setText(f"Move {cur.move_number}: {cur.san}")
-                self._quick_evaluate()
-        else:
+        if not self.game_state.moves:
+            self.board.update()
+            self.eval_bar.clear()
             self.board.clear_arrow()
             self.board.set_last_move(None)
-            self.eval_bar.clear()
+            self.book_indicator.setText("")
+            self.status_label.setText("Ready")
+            return
+            
+        if idx < 0 or idx >= len(self.game_state.moves):
+            idx = max(0, min(idx, len(self.game_state.moves) - 1))
+        
+        self.game_state.go_to_move(idx)
+        self._update_display_after_navigation()
 
     def _start_analysis(self, _):
         self._stop_analysis()
@@ -395,24 +457,29 @@ class MainWindow(QMainWindow):
         self.status_label.setText("Analysis stopped")
 
     def _quick_evaluate(self):
-        with QMutexLocker(self._eval_mutex):
-            if self._quick_eval_pending:
-                return
-            self._quick_eval_pending = True
+        try:
+            with QMutexLocker(self._eval_mutex):
+                if self._quick_eval_pending:
+                    return
+                self._quick_eval_pending = True
 
-        if self.analysis is not None:
+            if self.analysis is not None:
+                with QMutexLocker(self._eval_mutex):
+                    self._quick_eval_pending = False
+                return
+
+            if self._quick_eval_timer is None:
+                self._quick_eval_timer = QTimer()
+                self._quick_eval_timer.setSingleShot(True)
+                self._quick_eval_timer.timeout.connect(self._do_quick_evaluate)
+            else:
+                self._quick_eval_timer.stop()
+
+            self._quick_eval_timer.start(100)
+        except Exception as e:
+            print(f"Quick evaluate error (non-critical): {e}")
             with QMutexLocker(self._eval_mutex):
                 self._quick_eval_pending = False
-            return
-
-        if self._quick_eval_timer is None:
-            self._quick_eval_timer = QTimer()
-            self._quick_eval_timer.setSingleShot(True)
-            self._quick_eval_timer.timeout.connect(self._do_quick_evaluate)
-        else:
-            self._quick_eval_timer.stop()
-
-        self._quick_eval_timer.start(100)
 
     def _do_quick_evaluate(self):
         with QMutexLocker(self._eval_mutex):
@@ -422,16 +489,19 @@ class MainWindow(QMainWindow):
         if self.analysis is not None:
             return
 
-        ep = self.input_panel.get_engine_path()
-        pr = self.input_panel.get_protocol()
+        try:
+            ep = self.input_panel.get_engine_path()
+            pr = self.input_panel.get_protocol()
 
-        if self.quick_eval is None:
-            self.quick_eval = QuickEvaluator(ep, pr, movetime_ms=1500)
-            self.quick_eval.eval_ready.connect(self._on_quick_eval)
-        else:
-            self.quick_eval.update_settings(ep, pr, movetime_ms=1500)
+            if self.quick_eval is None:
+                self.quick_eval = QuickEvaluator(ep, pr, movetime_ms=1500)
+                self.quick_eval.eval_ready.connect(self._on_quick_eval)
+            else:
+                self.quick_eval.update_settings(ep, pr, movetime_ms=1500)
 
-        self.quick_eval.evaluate(self.game_state.board)
+            self.quick_eval.evaluate(self.game_state.board)
+        except Exception as e:
+            print(f"Quick evaluate error (non-critical): {e}")
 
     def _on_quick_eval(self, ev, bm, side):
         with QMutexLocker(self._eval_mutex):
@@ -446,10 +516,14 @@ class MainWindow(QMainWindow):
         self._last_live_fen = self.game_state.board.fen()
 
         score_cp = ev.score_cp
-        if score_cp is not None and side == chess.BLACK:
-            score_cp = -score_cp
+        mate = ev.mate
+        if side == chess.BLACK:
+            if score_cp is not None:
+                score_cp = -score_cp
+            if mate is not None:
+                mate = -mate
 
-        self.eval_bar.set_eval(score_cp=score_cp, mate=ev.mate, depth=ev.depth or 0)
+        self.eval_bar.set_eval(score_cp=score_cp, mate=mate, depth=ev.depth or 0)
         if bm:
             self.board.set_best_move_arrow(bm.from_square, bm.to_square)
 
@@ -515,10 +589,14 @@ class MainWindow(QMainWindow):
             return
 
         score_cp = ev.score_cp
-        if score_cp is not None and side == chess.BLACK:
-            score_cp = -score_cp
+        mate = ev.mate
+        if side == chess.BLACK:
+            if score_cp is not None:
+                score_cp = -score_cp
+            if mate is not None:
+                mate = -mate
 
-        self.eval_bar.set_eval(score_cp=score_cp, mate=ev.mate, depth=ev.depth or 0)
+        self.eval_bar.set_eval(score_cp=score_cp, mate=mate, depth=ev.depth or 0)
         if bm:
             self.board.set_best_move_arrow(bm.from_square, bm.to_square)
 

@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -14,17 +14,13 @@ def main():
     app.setStyle("Fusion")
     app.setStyleSheet("""
         QToolTip {
-            background:
-            color:
-            border: 1px solid
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #555;
             padding: 4px;
         }
     """)
 
-    if hasattr(Qt, 'AA_EnableHighDpiScaling'):
-        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-    if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
-        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
     window = MainWindow()
     window.show()

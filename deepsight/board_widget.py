@@ -46,7 +46,6 @@ class BoardWidget(QWidget):
         self.setMouseTracking(True)
 
     def _load_pieces(self):
-
         pieces_dir = "Images/Pieces"
         piece_map = {
             'K': 'w_K.png', 'Q': 'w_Q.png', 'R': 'w_R.png',
@@ -56,10 +55,13 @@ class BoardWidget(QWidget):
         }
 
         for symbol, filename in piece_map.items():
-            path = f"{pieces_dir}/{filename}"
-            pixmap = QPixmap(path)
-            if not pixmap.isNull():
-                self._pieces[symbol] = pixmap
+            try:
+                path = f"{pieces_dir}/{filename}"
+                pixmap = QPixmap(path)
+                if not pixmap.isNull():
+                    self._pieces[symbol] = pixmap
+            except Exception as e:
+                print(f"Failed to load piece {filename}: {e}")
 
     def set_best_move_arrow(self, from_sq: Optional[int], to_sq: Optional[int]):
 

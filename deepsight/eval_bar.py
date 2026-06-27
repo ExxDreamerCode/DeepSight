@@ -104,7 +104,7 @@ class EvalBar(QWidget):
 
         if eval_text:
             text_rect = QRectF(0, h - 30, w, 30)
-            painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, eval_text)
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter.value, eval_text)
 
         if self._depth > 0:
             font.setPointSize(8)
@@ -112,7 +112,7 @@ class EvalBar(QWidget):
             painter.setPen(QColor(200, 200, 200))
             depth_text = f"d={self._depth}"
             depth_rect = QRectF(0, h - 16, w, 16)
-            painter.drawText(depth_rect, Qt.AlignmentFlag.AlignCenter, depth_text)
+            painter.drawText(depth_rect, Qt.AlignmentFlag.AlignCenter.value, depth_text)
 
     def _round_top_rect(self, rect: QRectF, radius: float):
 
