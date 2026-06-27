@@ -230,7 +230,14 @@ class MainWindow(QMainWindow):
                         mate = -mate
                 self.eval_bar.set_eval(score_cp=score_cp, mate=mate, depth=ev.depth or 0)
             else:
-                self.eval_bar.clear()
+                board = self.game_state.get_position_at(idx)
+                if board.is_checkmate():
+                    if board.turn == chess.WHITE:
+                        self.eval_bar.set_eval(mate=-1, depth=0)
+                    else:
+                        self.eval_bar.set_eval(mate=1, depth=0)
+                else:
+                    self.eval_bar.clear()
 
             if cur.eval_before or cur.eval_after:
                 if cur.classification:
@@ -490,6 +497,15 @@ class MainWindow(QMainWindow):
             return
 
         try:
+            board = self.game_state.board
+            if board.is_checkmate():
+                if board.turn == chess.WHITE:
+                    self.eval_bar.set_eval(mate=-1, depth=0)
+                else:
+                    self.eval_bar.set_eval(mate=1, depth=0)
+                return
+
+
             ep = self.input_panel.get_engine_path()
             pr = self.input_panel.get_protocol()
 
