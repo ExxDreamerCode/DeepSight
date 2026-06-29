@@ -9,6 +9,7 @@ import chess
 from .engine_manager import EngineManager, EngineProtocol
 from .models.game_state import MoveEval
 
+
 class QuickEvaluator(QObject):
 
     eval_ready = pyqtSignal(object, object, object)
@@ -28,6 +29,9 @@ class QuickEvaluator(QObject):
         self._board_turn = chess.WHITE
         self._fen: Optional[str] = None
 
+        self._generation = 0
+        self._running_generation = 0
+
     def ensure_started(self) -> bool:
         if self._engine is not None and self._engine._ready:
             return True
@@ -39,11 +43,19 @@ class QuickEvaluator(QObject):
         if not self.ensure_started():
             return
 
+        self._generation += 1
+        current_gen = self._generation
+
+        if self._timer:
+            self._timer.stop()
+
         self._board_turn = board.turn
         self._fen = board.fen()
+        self._running_generation = current_gen
 
         try:
             self._engine.stop_analysis()
+            self._engine.get_output()
         except:
             pass
 
@@ -64,10 +76,19 @@ class QuickEvaluator(QObject):
             self._stop()
             return
 
+        my_gen = self._running_generation
+        if my_gen != self._generation:
+            self._stop()
+            return
+
         lines = self._engine.get_output()
         timeout = time.time() - self._start_time > self._movetime_ms / 1000.0 + 0.5
 
         for line in lines:
+            if self._generation != my_gen:
+                self._stop()
+                return
+
             if line.startswith("bestmove"):
                 self._finish()
                 return
@@ -96,7 +117,9 @@ class QuickEvaluator(QObject):
                     mate=mate,
                     depth=depth
                 )
-                self.eval_ready.emit(ev, pv, self._board_turn)
+
+                turn = self._board_turn
+                self.eval_ready.emit(ev, pv, turn)
 
         if timeout:
             self._finish()
@@ -107,7 +130,9 @@ class QuickEvaluator(QObject):
         if self._timer:
             self._timer.stop()
         try:
-            self._engine.stop_analysis()
+            if self._engine:
+                self._engine.stop_analysis()
+                self._engine.get_output()
         except:
             pass
 
@@ -119,6 +144,7 @@ class QuickEvaluator(QObject):
         try:
             if self._engine:
                 self._engine.stop_analysis()
+                self._engine.get_output()
         except:
             pass
 
@@ -129,7 +155,6 @@ class QuickEvaluator(QObject):
             self._engine = None
 
     def is_stale(self, board: chess.Board) -> bool:
-
         return self._fen is not None and self._fen != board.fen()
 
     def update_settings(self, engine_path: str, protocol: EngineProtocol, movetime_ms: int):

@@ -241,7 +241,7 @@ class MainWindow(QMainWindow):
 
             if cur.eval_before or cur.eval_after:
                 if cur.classification:
-                    self.status_label.setText(f"Move {cur.move_number}: {cur.san} вЂ” {cur.classification}")
+                    self.status_label.setText(f"Move {cur.move_number}: {cur.san} — {cur.classification}")
                 else:
                     self.status_label.setText(f"Move {cur.move_number}: {cur.san}")
             else:
@@ -520,11 +520,14 @@ class MainWindow(QMainWindow):
             print(f"Quick evaluate error (non-critical): {e}")
 
     def _on_quick_eval(self, ev, bm, side):
+        if self.quick_eval is None:
+            return
+
         with QMutexLocker(self._eval_mutex):
             if self.analysis is not None:
                 return
 
-        if self.quick_eval and self.quick_eval.is_stale(self.game_state.board):
+        if self.quick_eval.is_stale(self.game_state.board):
             return
 
         self._last_live_eval = ev
