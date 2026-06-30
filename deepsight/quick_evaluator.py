@@ -32,6 +32,11 @@ class QuickEvaluator(QObject):
         self._generation = 0
         self._running_generation = 0
 
+        self._last_pv: Optional[chess.Move] = None
+        self._last_score_cp: Optional[float] = None
+        self._last_mate: Optional[int] = None
+        self._last_depth: int = 0
+
     def ensure_started(self) -> bool:
         if self._engine is not None and self._engine._ready:
             return True
@@ -48,6 +53,13 @@ class QuickEvaluator(QObject):
 
         if self._timer:
             self._timer.stop()
+
+        board_changed = (self._fen is not None and self._fen != board.fen())
+        if board_changed:
+            self._last_pv = None
+            self._last_score_cp = None
+            self._last_mate = None
+            self._last_depth = 0
 
         self._board_turn = board.turn
         self._fen = board.fen()
@@ -90,7 +102,15 @@ class QuickEvaluator(QObject):
                 return
 
             if line.startswith("bestmove"):
-                self._finish()
+                parts = line.split()
+                if len(parts) >= 2:
+                    try:
+                        bm = chess.Move.from_uci(parts[1])
+                        self._last_pv = bm
+                    except:
+                        pass
+                self._emit_final()
+                self._stop()
                 return
 
             info = self._engine.parse_uci_info(line)
@@ -102,27 +122,45 @@ class QuickEvaluator(QObject):
             depth = info.get('depth', 0)
 
             if score_cp is not None or mate is not None:
-                pv = None
+                if score_cp is not None:
+                    self._last_score_cp = float(score_cp)
+                self._last_mate = mate
+                self._last_depth = depth
+
                 if 'pv' in info:
                     try:
                         pv_strs = info['pv'].split()
                         if pv_strs:
-                            pv = chess.Move.from_uci(pv_strs[0])
+                            self._last_pv = chess.Move.from_uci(pv_strs[0])
                     except:
                         pass
 
+                pv_to_emit = self._last_pv
                 ev = MoveEval(
-                    move=pv or chess.Move.null(),
+                    move=pv_to_emit or chess.Move.null(),
                     score_cp=float(score_cp) if score_cp is not None else None,
                     mate=mate,
                     depth=depth
                 )
 
                 turn = self._board_turn
-                self.eval_ready.emit(ev, pv, turn)
+                self.eval_ready.emit(ev, pv_to_emit, turn)
 
         if timeout:
-            self._finish()
+            self._emit_final()
+            self._stop()
+
+    def _emit_final(self):
+        if self._last_score_cp is not None or self._last_mate is not None:
+            pv_to_emit = self._last_pv
+            ev = MoveEval(
+                move=pv_to_emit or chess.Move.null(),
+                score_cp=self._last_score_cp,
+                mate=self._last_mate,
+                depth=self._last_depth
+            )
+            turn = self._board_turn
+            self.eval_ready.emit(ev, pv_to_emit, turn)
 
     def _finish(self):
         self._running = False
