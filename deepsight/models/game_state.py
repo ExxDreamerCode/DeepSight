@@ -31,6 +31,8 @@ class MoveEval:
     @property
     def score_num(self) -> Optional[float]:
         if self.mate is not None:
+            if self.mate == 0:
+                return None
             sign = 1 if self.mate > 0 else -1
             return sign * 10000.0 / abs(self.mate)
         return self.score_cp / 100.0 if self.score_cp is not None else None

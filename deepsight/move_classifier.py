@@ -132,7 +132,60 @@ class MoveClassifier:
             if best_move is None:
                 return "Excellent"
             return "Good"
-        
+
+        MATE_THRESHOLD = 10.0
+
+        after_is_mate = abs(eval_after) > MATE_THRESHOLD
+        before_is_mate = abs(eval_before) > MATE_THRESHOLD
+
+        def _mate_for_player_after() -> bool:
+            return after_is_mate and (
+                (board_before.turn == chess.WHITE and eval_after > 0) or
+                (board_before.turn == chess.BLACK and eval_after < 0)
+            )
+
+        def _mate_for_opponent_after() -> bool:
+            return after_is_mate and (
+                (board_before.turn == chess.WHITE and eval_after < 0) or
+                (board_before.turn == chess.BLACK and eval_after > 0)
+            )
+
+        def _mate_for_player_before() -> bool:
+            return before_is_mate and (
+                (board_before.turn == chess.WHITE and eval_before > 0) or
+                (board_before.turn == chess.BLACK and eval_before < 0)
+            )
+
+        def _mate_for_opponent_before() -> bool:
+            return before_is_mate and (
+                (board_before.turn == chess.WHITE and eval_before < 0) or
+                (board_before.turn == chess.BLACK and eval_before > 0)
+            )
+
+        if _mate_for_player_before():
+            if _mate_for_opponent_after():
+                return "Inaccuracy"
+            if _mate_for_player_after():
+                return "Best"
+            return "Best"
+
+        if _mate_for_opponent_before():
+            return "Best"
+
+        if _mate_for_player_after():
+            if is_best:
+                return "Best"
+            was_winning = (
+                (board_before.turn == chess.WHITE and eval_before > 1.5) or
+                (board_before.turn == chess.BLACK and eval_before < -1.5)
+            )
+            if was_winning:
+                return "Brilliant"
+            return "Best"
+
+        if _mate_for_opponent_after():
+            return "Inaccuracy"
+
         if board_before.turn == chess.WHITE:
             eval_after_fixed = -eval_after
             loss = eval_before - eval_after_fixed
@@ -155,6 +208,22 @@ class MoveClassifier:
             classification = "Mistake"
         else:
             classification = "Blunder"
+
+        if board_before.turn == chess.WHITE:
+            position_advantage = eval_before
+        else:
+            position_advantage = -eval_before
+
+        if position_advantage < -6.0:
+            if classification == "Blunder":
+                classification = "Good"
+            elif classification == "Mistake":
+                classification = "Good"
+            elif classification == "Inaccuracy":
+                classification = "Good"
+        elif position_advantage < -2.0:
+            if classification == "Blunder":
+                classification = "Mistake"
 
         if not is_best and classification == "Best":
             classification = "Excellent"
