@@ -165,7 +165,7 @@ class IconLabel(QLabel):
 class MoveListPanel(QScrollArea):
 
     move_selected = pyqtSignal(int)
-    navigation_requested = pyqtSignal(str)  # "forward" РёР»Рё "back"
+    navigation_requested = pyqtSignal(str)
 
     def __init__(self, game_state: GameState, parent=None):
         super().__init__(parent)
@@ -248,10 +248,22 @@ class MoveListPanel(QScrollArea):
         if emit_signal:
             self.move_selected.emit(move_index)
 
-    def refresh(self, emit_signal: bool = False):
+    def refresh(self, emit_signal: bool = False, select_index: Optional[int] = None):
+        if select_index is not None:
+            idx_to_select = select_index
+        else:
+            idx_to_select = self._selected_index
+
+        # Сохраняем позицию скролла
+        scroll_pos = self.verticalScrollBar().value()
+
         self._build_list()
-        if 0 <= self._selected_index < len(self.game_state.moves):
-            self._select_move(self._selected_index, emit_signal=emit_signal)
+
+        if 0 <= idx_to_select < len(self.game_state.moves):
+            self._select_move(idx_to_select, emit_signal=emit_signal)
+            self.scroll_to_move(idx_to_select)
+        else:
+            self.verticalScrollBar().setValue(scroll_pos)
 
     def scroll_to_move(self, move_index: int):
         for row in self._rows:

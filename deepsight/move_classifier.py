@@ -138,6 +138,7 @@ class MoveClassifier:
         after_is_mate = abs(eval_after) > MATE_THRESHOLD
         before_is_mate = abs(eval_before) > MATE_THRESHOLD
 
+
         def _mate_for_player_after() -> bool:
             return after_is_mate and (
                 (board_before.turn == chess.WHITE and eval_after > 0) or
@@ -163,27 +164,36 @@ class MoveClassifier:
             )
 
         if _mate_for_player_before():
-            if _mate_for_opponent_after():
-                return "Inaccuracy"
             if _mate_for_player_after():
-                return "Best"
-            return "Best"
+                if is_best:
+                    return "Best"
+                return "Brilliant"
+            else:
+                if is_best:
+                    return "Best"
+                return "Blunder"
 
         if _mate_for_opponent_before():
-            return "Best"
+            if _mate_for_opponent_after():
+                return "Best"
+            else:
+                return "Excellent"
 
         if _mate_for_player_after():
             if is_best:
                 return "Best"
-            was_winning = (
-                (board_before.turn == chess.WHITE and eval_before > 1.5) or
-                (board_before.turn == chess.BLACK and eval_before < -1.5)
-            )
-            if was_winning:
+            
+            if board_before.turn == chess.WHITE:
+                clearly_winning = eval_before > 1.5
+            else:
+                clearly_winning = eval_before < -1.5
+            if not clearly_winning:
                 return "Brilliant"
-            return "Best"
+            return "Excellent"
 
         if _mate_for_opponent_after():
+            if is_best:
+                return "Best"
             return "Inaccuracy"
 
         if board_before.turn == chess.WHITE:

@@ -182,7 +182,7 @@ class MainWindow(QMainWindow):
         idx = self.game_state.current_move_index
         
         self.board.update()
-        self.move_list.refresh()
+        self.move_list.refresh(select_index=idx)
 
         self._quick_evaluate()
         
@@ -573,13 +573,12 @@ class MainWindow(QMainWindow):
         self.status_label.setText(f"Analyzing move {cur}/{total}")
 
     def _on_move_analyzed(self, md):
-        self.move_list.refresh()
         try:
             idx = self.game_state.moves.index(md)
         except ValueError:
+            self.move_list.refresh()
             return
-        self.move_list._select_move(idx)
-        self.move_list.scroll_to_move(idx)
+        self.move_list.refresh(select_index=idx)
 
     def _on_analysis_complete(self):
         self.progress_bar.setVisible(False)
