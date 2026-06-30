@@ -13,10 +13,21 @@ class BookChecker:
         self._loaded = False
 
     def load_books(self) -> int:
+        from .engine_registry import get_data_path
+
         self.book_moves.clear()
         count = 0
 
-        if not os.path.isdir(self.books_dir):
+        search_dirs = [self.books_dir]
+        data_path = get_data_path(self.books_dir)
+        if data_path != self.books_dir:
+            search_dirs.append(data_path)
+
+        for search_dir in search_dirs:
+            if os.path.isdir(search_dir):
+                self.books_dir = search_dir
+                break
+        else:
             self._loaded = True
             return 0
 

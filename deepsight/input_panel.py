@@ -12,7 +12,9 @@ from PyQt6.QtGui import QFont
 import chess
 
 from .engine_manager import EngineProtocol
+from .engine_registry import list_engine_types, get_engine_display_name
 from .models.game_state import GameState
+
 
 class InputPanel(QWidget):
 
@@ -26,7 +28,9 @@ class InputPanel(QWidget):
     def __init__(self, game_state: GameState, parent=None):
         super().__init__(parent)
         self.game_state = game_state
-        self.engine_path: Optional[str] = None
+
+        self._engine_type = "ember"
+        self._external_engine_path: Optional[str] = None
 
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
@@ -40,25 +44,40 @@ class InputPanel(QWidget):
         engine_group = QGroupBox("Engine")
         engine_layout = QVBoxLayout(engine_group)
 
-        self.engine_path_label = QLabel("Ember (default)")
-        self.engine_path_label.setStyleSheet("color: #aaa; padding: 4px;")
-        engine_layout.addWidget(self.engine_path_label)
+        type_row = QHBoxLayout()
+        type_row.addWidget(QLabel("Engine:"))
+        self.engine_type_combo = QComboBox()
+        self.engine_type_combo.addItem("Ember (built-in)", "ember")
+        self.engine_type_combo.addItem("Stockfish (built-in)", "stockfish")
+        self.engine_type_combo.addItem("External engine...", "external")
+        self.engine_type_combo.currentIndexChanged.connect(self._on_engine_type_changed)
+        type_row.addWidget(self.engine_type_combo, 1)
+        engine_layout.addLayout(type_row)
 
-        engine_buttons = QHBoxLayout()
-        self.btn_select_engine = QPushButton("Select Engine...")
-        self.btn_select_engine.clicked.connect(self._select_engine)
-        engine_buttons.addWidget(self.btn_select_engine)
+        self.external_row = QWidget()
+        ext_row_layout = QHBoxLayout(self.external_row)
+        ext_row_layout.setContentsMargins(0, 0, 0, 0)
+        self.external_path_label = QLabel("No external engine selected")
+        self.external_path_label.setStyleSheet("color: #aaa; padding: 4px; font-size: 11px;")
+        ext_row_layout.addWidget(self.external_path_label, 1)
+        self.btn_select_external = QPushButton("Browse...")
+        self.btn_select_external.clicked.connect(self._select_external_engine)
+        ext_row_layout.addWidget(self.btn_select_external)
+        self.external_row.setVisible(False)
+        engine_layout.addWidget(self.external_row)
 
-        self.btn_reset_engine = QPushButton("Reset")
-        self.btn_reset_engine.clicked.connect(self._reset_engine)
-        engine_buttons.addWidget(self.btn_reset_engine)
-
+        proto_row = QHBoxLayout()
+        proto_row.addWidget(QLabel("Protocol:"))
         self.protocol_combo = QComboBox()
         self.protocol_combo.addItems(["UCI", "XBoard"])
-        engine_buttons.addWidget(QLabel("Protocol:"))
-        engine_buttons.addWidget(self.protocol_combo)
+        proto_row.addWidget(self.protocol_combo)
+        proto_row.addStretch()
+        engine_layout.addLayout(proto_row)
 
-        engine_layout.addLayout(engine_buttons)
+        self.engine_status_label = QLabel("")
+        self.engine_status_label.setStyleSheet("color: #4a9eff; font-size: 11px; padding: 2px;")
+        engine_layout.addWidget(self.engine_status_label)
+
         layout.addWidget(engine_group)
 
         pgn_group = QGroupBox("PGN Input")
@@ -170,19 +189,36 @@ class InputPanel(QWidget):
 
         layout.addStretch()
 
-    def _select_engine(self):
+        self._update_engine_status()
+
+    def _on_engine_type_changed(self, index: int):
+        engine_type = self.engine_type_combo.currentData()
+        self._engine_type = engine_type
+        self.external_row.setVisible(engine_type == "external")
+        self._update_engine_status()
+
+    def _select_external_engine(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select Chess Engine", "",
             "Executables (*.exe);;All Files (*.*)"
         )
         if file_path:
-            self.engine_path = file_path
+            self._external_engine_path = file_path
             name = Path(file_path).name
-            self.engine_path_label.setText(name)
+            self.external_path_label.setText(name)
+            self._update_engine_status()
 
-    def _reset_engine(self):
-        self.engine_path = None
-        self.engine_path_label.setText("Ember (default)")
+    def _update_engine_status(self):
+        if self._engine_type == "ember":
+            self.engine_status_label.setText("✓ Ember engine ready")
+        elif self._engine_type == "stockfish":
+            self.engine_status_label.setText("✓ Stockfish engine ready")
+        elif self._engine_type == "external":
+            if self._external_engine_path:
+                name = Path(self._external_engine_path).name
+                self.engine_status_label.setText(f"External: {name}")
+            else:
+                self.engine_status_label.setText("Select an external engine")
 
     def _load_pgn_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -221,10 +257,26 @@ class InputPanel(QWidget):
         self.btn_start.setEnabled(True)
         self.btn_stop.setEnabled(False)
 
-    def get_engine_path(self, default: str = "Engines/Ember.exe") -> str:
-        return self.engine_path or default
+    def get_engine_type(self) -> str:
+        return self._engine_type
+
+    def get_engine_path(self) -> str:
+        from .engine_registry import get_engine_path as resolve_engine_path
+
+        path = resolve_engine_path(self._engine_type, self._external_engine_path)
+        if path is not None:
+            return path
+
+        fallback = resolve_engine_path("ember")
+        if fallback is not None:
+            self._engine_type = "ember"
+            return fallback
+
+        return "Engines/Ember.exe"
 
     def get_protocol(self) -> EngineProtocol:
+        if self._engine_type in ("ember", "stockfish"):
+            return EngineProtocol.UCI
         return EngineProtocol.UCI if self.protocol_combo.currentText() == "UCI" else EngineProtocol.XBOARD
 
     def get_time_per_move(self) -> int:

@@ -46,7 +46,8 @@ class BoardWidget(QWidget):
         self.setMouseTracking(True)
 
     def _load_pieces(self):
-        pieces_dir = "Images/Pieces"
+        from .engine_registry import get_data_path
+        pieces_dir = get_data_path("Images/Pieces")
         piece_map = {
             'K': 'w_K.png', 'Q': 'w_Q.png', 'R': 'w_R.png',
             'B': 'w_B.png', 'N': 'w_N.png', 'P': 'w_P.png',

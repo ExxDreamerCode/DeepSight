@@ -14,7 +14,7 @@ class QuickEvaluator(QObject):
 
     eval_ready = pyqtSignal(object, object, object)
 
-    def __init__(self, engine_path: str = "Engines/Ember.exe",
+    def __init__(self, engine_path: str = "",
                  protocol: EngineProtocol = EngineProtocol.UCI,
                  movetime_ms: int = 7000):
         super().__init__()

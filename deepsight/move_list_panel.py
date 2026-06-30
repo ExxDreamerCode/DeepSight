@@ -154,9 +154,11 @@ class IconLabel(QLabel):
 
     @classmethod
     def _load_icons(cls):
-        moves_dir = Path("Images/Moves")
-        if moves_dir.exists():
-            for icon_file in moves_dir.glob("*.svg"):
+        from .engine_registry import get_data_path
+        moves_dir = get_data_path("Images/Moves")
+        moves_path = Path(moves_dir)
+        if moves_path.exists():
+            for icon_file in moves_path.glob("*.svg"):
                 name = icon_file.stem
                 pixmap = QPixmap(str(icon_file))
                 if not pixmap.isNull():
