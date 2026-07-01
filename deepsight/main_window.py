@@ -578,7 +578,7 @@ class MainWindow(QMainWindow):
         except ValueError:
             self.move_list.refresh()
             return
-        self.move_list.refresh(select_index=idx)
+        self.move_list.refresh(select_index=idx, emit_signal=True)
 
     def _on_analysis_complete(self):
         self.progress_bar.setVisible(False)
