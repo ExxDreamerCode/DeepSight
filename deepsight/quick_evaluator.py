@@ -36,12 +36,29 @@ class QuickEvaluator(QObject):
         self._last_score_cp: Optional[float] = None
         self._last_mate: Optional[int] = None
         self._last_depth: int = 0
+        self._awaiting_stop = False
+        self._pending_fen: Optional[str] = None
+        self._pending_gen = 0
+        self._pending_board: Optional[chess.Board] = None
 
     def ensure_started(self) -> bool:
         if self._engine is not None and self._engine._ready:
             return True
         self._engine = EngineManager(self._engine_path, self._protocol)
         return self._engine.start()
+
+    def _launch_search(self, board: chess.Board, gen: int):
+        if not self.ensure_started():
+            return
+        self._engine.set_position(board)
+        self._engine.get_output()
+        self._engine.start_analysis(movetime=self._movetime_ms)
+        self._board_turn = board.turn
+        self._fen = board.fen()
+        self._running_generation = gen
+        self._running = True
+        self._awaiting_stop = False
+        self._start_time = time.time()
 
     def evaluate(self, board: chess.Board):
 
@@ -51,9 +68,6 @@ class QuickEvaluator(QObject):
         self._generation += 1
         current_gen = self._generation
 
-        if self._timer:
-            self._timer.stop()
-
         board_changed = (self._fen is not None and self._fen != board.fen())
         if board_changed:
             self._last_pv = None
@@ -61,22 +75,24 @@ class QuickEvaluator(QObject):
             self._last_mate = None
             self._last_depth = 0
 
-        self._board_turn = board.turn
-        self._fen = board.fen()
-        self._running_generation = current_gen
+        if self._running:
+            if not self._awaiting_stop:
+                self._awaiting_stop = True
+                self._engine.stop_analysis()
+                self._engine.get_output()
+            self._pending_board = board
+            self._pending_fen = board.fen()
+            self._pending_gen = current_gen
+            if self._timer is None:
+                self._timer = QTimer()
+                self._timer.timeout.connect(self._poll)
+                self._timer.start(50)
+            return
 
-        try:
-            self._engine.stop_analysis()
-            self._engine.get_output()
-        except:
-            pass
+        if self._timer:
+            self._timer.stop()
 
-        self._engine.set_position(board)
-        self._engine.get_output()
-        self._engine.start_analysis(movetime=self._movetime_ms)
-
-        self._running = True
-        self._start_time = time.time()
+        self._launch_search(board, current_gen)
 
         if self._timer is None:
             self._timer = QTimer()
@@ -84,6 +100,29 @@ class QuickEvaluator(QObject):
         self._timer.start(50)
 
     def _poll(self):
+        if self._engine is None:
+            self._stop()
+            return
+
+        lines = self._engine.get_output()
+
+        if self._awaiting_stop:
+            bestmove_found = False
+            for line in lines:
+                if line.startswith("bestmove"):
+                    bestmove_found = True
+                    break
+            if bestmove_found and self._pending_board is not None:
+                self._launch_search(self._pending_board, self._pending_gen)
+                self._pending_board = None
+                self._pending_fen = None
+                self._pending_gen = 0
+            elif bestmove_found:
+                self._stop()
+                return
+            else:
+                return
+
         if not self._running or self._engine is None:
             self._stop()
             return
@@ -93,7 +132,6 @@ class QuickEvaluator(QObject):
             self._stop()
             return
 
-        lines = self._engine.get_output()
         timeout = time.time() - self._start_time > self._movetime_ms / 1000.0 + 0.5
 
         for line in lines:
@@ -164,7 +202,11 @@ class QuickEvaluator(QObject):
 
     def _finish(self):
         self._running = False
+        self._awaiting_stop = False
         self._fen = None
+        self._pending_board = None
+        self._pending_fen = None
+        self._pending_gen = 0
         if self._timer:
             self._timer.stop()
         try:
@@ -176,7 +218,11 @@ class QuickEvaluator(QObject):
 
     def _stop(self):
         self._running = False
+        self._awaiting_stop = False
         self._fen = None
+        self._pending_board = None
+        self._pending_fen = None
+        self._pending_gen = 0
         if self._timer:
             self._timer.stop()
         try:
@@ -205,6 +251,10 @@ class QuickEvaluator(QObject):
 
     def stop_analysis_only(self):
         self._running = False
+        self._awaiting_stop = False
+        self._pending_board = None
+        self._pending_fen = None
+        self._pending_gen = 0
         if self._timer:
             self._timer.stop()
         if self._engine:

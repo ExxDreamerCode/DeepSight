@@ -295,7 +295,7 @@ class MainWindow(QMainWindow):
 
     def _on_pgn_loaded(self, text: str):
         self._stop_analysis()
-        self._stop_quick_eval()
+        self._stop_quick_eval(hard=True)
         if self.game_state.load_pgn(text):
             self.board.update()
             self.eval_bar.clear()
@@ -307,7 +307,7 @@ class MainWindow(QMainWindow):
 
     def _on_fen_loaded(self, fen: str):
         self._stop_analysis()
-        self._stop_quick_eval()
+        self._stop_quick_eval(hard=True)
         if self.game_state.load_fen(fen):
             self.board.update()
             self.eval_bar.clear()
@@ -383,7 +383,7 @@ class MainWindow(QMainWindow):
 
     def _on_clear(self):
         self._stop_analysis()
-        self._stop_quick_eval()
+        self._stop_quick_eval(hard=True)
         self.game_state.clear()
         self.board.update()
         self.eval_bar.clear()
@@ -427,7 +427,7 @@ class MainWindow(QMainWindow):
 
         self._debug(f"Starting analysis: engine={ep}, protocol={pr.value}, moves={len(self.game_state.moves)}")
 
-        self._stop_quick_eval()
+        self._stop_quick_eval(hard=True)
 
         self.analysis = AnalysisEngine(self.game_state, ep, pr, self.classifier,
                                        use_nnue=self.input_panel.get_nnue())
@@ -554,7 +554,7 @@ class MainWindow(QMainWindow):
             display = "?"
         self.status_label.setText(f"Move {len(self.game_state.moves)}: {display} (depth={ev.depth})")
 
-    def _stop_quick_eval(self):
+    def _stop_quick_eval(self, hard: bool = False):
         with QMutexLocker(self._eval_mutex):
             self._quick_eval_pending = False
             if self._quick_eval_timer:
@@ -562,11 +562,17 @@ class MainWindow(QMainWindow):
                 self._quick_eval_timer = None
 
         if self.quick_eval:
-            try:
-                self.quick_eval.stop()
-            except:
-                pass
-            self.quick_eval = None
+            if hard:
+                try:
+                    self.quick_eval.stop()
+                except:
+                    pass
+                self.quick_eval = None
+            else:
+                try:
+                    self.quick_eval.stop_analysis_only()
+                except:
+                    pass
 
     def _on_analysis_progress(self, cur: int, total: int):
         self.progress_bar.setValue(cur)
@@ -637,5 +643,5 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         self._stop_analysis()
-        self._stop_quick_eval()
+        self._stop_quick_eval(hard=True)
         event.accept()
