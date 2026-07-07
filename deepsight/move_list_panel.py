@@ -256,7 +256,6 @@ class MoveListPanel(QScrollArea):
         else:
             idx_to_select = self._selected_index
 
-        # Сохраняем позицию скролла
         scroll_pos = self.verticalScrollBar().value()
 
         self._build_list()

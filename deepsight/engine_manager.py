@@ -210,8 +210,9 @@ class EngineManager:
         if m: data['score_cp'] = int(m.group(1))
         m = re.search(r'score\s+mate\s+(-?\d+)', line)
         if m: data['mate'] = int(m.group(1))
-        if 'pv' in line:
-            data['pv'] = line[line.index('pv') + 2:].strip()
+        m = re.search(r'\bpv\s+(.*)', line)
+        if m:
+            data['pv'] = m.group(1).strip()
         m = re.search(r'nodes\s+(\d+)', line)
         if m: data['nodes'] = int(m.group(1))
         if 'pv' not in data and 'score_cp' not in data and 'mate' not in data:
