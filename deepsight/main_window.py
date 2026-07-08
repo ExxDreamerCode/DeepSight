@@ -546,8 +546,7 @@ class MainWindow(QMainWindow):
                 mate = -mate
 
         self.eval_bar.set_eval(score_cp=score_cp, mate=mate, depth=ev.depth or 0)
-        if bm:
-            self.board.set_best_move_arrow(bm.from_square, bm.to_square)
+        self._set_best_move_arrow(bm)
 
         if score_cp is not None:
             display = f"{score_cp / 100.0:+.2f}"
@@ -629,8 +628,7 @@ class MainWindow(QMainWindow):
                 mate = -mate
 
         self.eval_bar.set_eval(score_cp=score_cp, mate=mate, depth=ev.depth or 0)
-        if bm:
-            self.board.set_best_move_arrow(bm.from_square, bm.to_square)
+        self._set_best_move_arrow(bm)
 
         if score_cp is not None:
             display = f"{score_cp / 100.0:+.2f}"
@@ -639,6 +637,13 @@ class MainWindow(QMainWindow):
         else:
             display = "?"
         self.status_label.setText(f"Analysis: {display} (depth={ev.depth})")
+
+    def _set_best_move_arrow(self, best_move: Optional[chess.Move]):
+        if best_move is None or best_move not in self.game_state.board.legal_moves:
+            self.board.clear_arrow()
+            return
+
+        self.board.set_best_move_arrow(best_move.from_square, best_move.to_square)
 
     def _menu_load_pgn(self):
         fp, _ = QFileDialog.getOpenFileName(self, "Load PGN", "", "PGN Files (*.pgn);;All Files (*.*)")
