@@ -5,7 +5,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                              QLabel, QTextEdit, QComboBox, QFileDialog,
                              QLineEdit, QGroupBox, QFormLayout, QSpinBox,
-                             QMessageBox, QRadioButton, QButtonGroup, QCheckBox)
+                             QDoubleSpinBox, QMessageBox, QRadioButton, QButtonGroup, QCheckBox)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
@@ -134,9 +134,11 @@ class InputPanel(QWidget):
         analysis_layout = QVBoxLayout(analysis_group)
 
         time_layout = QFormLayout()
-        self.time_spin = QSpinBox()
-        self.time_spin.setRange(1, 60)
-        self.time_spin.setValue(1)
+        self.time_spin = QDoubleSpinBox()
+        self.time_spin.setRange(0.1, 60.0)
+        self.time_spin.setSingleStep(0.1)
+        self.time_spin.setDecimals(1)
+        self.time_spin.setValue(0.3)
         self.time_spin.setSuffix(" sec")
         self.time_spin.setStyleSheet("background-color: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 4px; padding: 2px;")
         time_layout.addRow("Time/move:", self.time_spin)
@@ -259,12 +261,14 @@ class InputPanel(QWidget):
 
     def _start_analysis(self):
         self.analysis_started.emit("start")
-        self.btn_start.setEnabled(False)
-        self.btn_stop.setEnabled(True)
 
     def on_analysis_complete(self):
         self.btn_start.setEnabled(True)
         self.btn_stop.setEnabled(False)
+
+    def set_analysis_running(self, running: bool):
+        self.btn_start.setEnabled(not running)
+        self.btn_stop.setEnabled(running)
 
     def get_engine_type(self) -> str:
         return self._engine_type
@@ -289,7 +293,7 @@ class InputPanel(QWidget):
         return EngineProtocol.UCI if self.protocol_combo.currentText() == "UCI" else EngineProtocol.XBOARD
 
     def get_time_per_move(self) -> int:
-        return self.time_spin.value() * 1000
+        return int(self.time_spin.value() * 1000)
 
     def get_depth(self) -> Optional[int]:
         d = self.depth_spin.value()

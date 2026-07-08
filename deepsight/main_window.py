@@ -434,6 +434,8 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Engine Error", "No engine found. Please select an engine.")
             return
 
+        self.input_panel.set_analysis_running(True)
+
         self._debug(f"Starting analysis: engine={ep}, protocol={pr.value}, moves={len(self.game_state.moves)}")
 
         self._stop_quick_eval(hard=True)
