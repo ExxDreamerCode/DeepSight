@@ -12,7 +12,7 @@
 
 - **Загрузка партий** — импорт PGN-файлов или вставка текста PGN
 - **Произвольные позиции** — установка любой позиции через FEN
-- **Встроенные движки** — Ember и Stockfish идут в комплекте
+- **Встроенные движки** — Ember и Stockfish поставляются Nix-сборками, но не хранятся в репозитории
 - **Поддержка внешних движков** — подключение любого UCI-совместимого движка
 - **Полный анализ партии** — автоматический анализ каждого хода с оценкой в центипешнях/мате
 - **Live-оценка** — быстрая оценка текущей позиции без запуска полного анализа
@@ -30,7 +30,8 @@
 ### Требования
 
 - Python 3.11+
-- Windows (основная платформа; возможна работа на Linux/macOS с доработками)
+- Linux x86_64 для Nix-сборки текущей системы
+- Windows x86_64 для готового portable-архива или NSIS-установщика
 
 ### Зависимости
 
@@ -48,16 +49,48 @@ pip install -r requirements.txt
 python main.py
 ```
 
+В исходном дереве движки не хранятся. Для запуска встроенных движков из исходников положите совместимые UCI-исполняемые файлы в `Engines/` или используйте Nix-сборку ниже.
+
+### Сборка через Nix для текущей системы
+
+```bash
+nix build .#
+./result/bin/deepsight
+```
+
+Эта сборка создает Nix derivation приложения и добавляет в него движки:
+
+- Ember собирается из закрепленного исходного релиза `ExxDreamerCode/Ember`
+- Stockfish скачивается из закрепленного релиза `official-stockfish/Stockfish`
+
+### Сборка Windows portable-архива через Nix
+
+```bash
+nix build .#windows
+```
+
+Готовый архив будет лежать в `result/DeepSight-0.1.0-windows-x86_64.zip`. Его можно публиковать как portable Windows-сборку. В архив входят `DeepSight.exe`, embedded Python runtime, Python-зависимости и скачанные Nix движки `Engines/ember.exe` и `Engines/stockfish-windows-x86-64.exe`.
+
+### Сборка Windows NSIS-установщика
+
+```bash
+nix build .#windows-installer
+```
+
+Готовый установщик будет лежать в `result/DeepSight-0.1.0-setup.exe`.
+
+NSIS-установщик не содержит движки. Во время установки он запускает `install-engines.ps1`, скачивает Ember и Stockfish по закрепленным URL, проверяет SHA-256 и распаковывает Stockfish в папку `Engines/`. Для этого на машине пользователя нужны интернет-доступ и PowerShell. Если установка выполняется в среде без сетевого доступа, используйте portable-архив `.#windows`, где движки уже включены.
+
 ### Сборка исполняемого файла
 
-Для сборки используется PyInstaller. Конфигурация находится в `deepsight.spec`.
+Для ручной сборки используется PyInstaller. Конфигурация находится в `deepsight.spec`.
 
 ```bash
 pip install pyinstaller
 pyinstaller deepsight.spec --clean --noconfirm
 ```
 
-Готовый `.exe` появится в папке `dist/`.
+Готовый `.exe` появится в папке `dist/`. PyInstaller-спецификация не встраивает движки; положите их рядом с приложением в `Engines/` или используйте Nix-цели для Windows.
 
 ---
 
@@ -94,12 +127,12 @@ pyinstaller deepsight.spec --clean --noconfirm
 
 ## Встроенные движки
 
-| Движок | Файл | Протокол |
-|--------|------|----------|
-| **Ember** | `Engines/Ember.exe` | UCI |
-| **Stockfish** | `Engines/stockfish-windows-x86-64.exe` | UCI |
+| Движок | Linux Nix-сборка | Windows bundle | Протокол |
+|--------|-------------------|----------------|----------|
+| **Ember** | `Engines/ember` | `Engines/ember.exe` | UCI |
+| **Stockfish** | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe` | UCI |
 
-При сборке в `.exe` через PyInstaller движки упаковываются внутрь и извлекаются во временную директорию при запуске.
+Движки не коммитятся в репозиторий. Nix скачивает или собирает их как часть derivation. Portable Windows-архив содержит `.exe` движки, а NSIS-установщик скачивает их на машине пользователя во время установки.
 
 ---
 
@@ -124,9 +157,10 @@ pyinstaller deepsight.spec --clean --noconfirm
 
 ### Добавление нового движка
 
-1. Поместите исполняемый файл движка в папку `Engines/`
-2. Добавьте запись в `BUILTIN_ENGINES` в `engine_registry.py`
-3. При необходимости укажите протокол в `get_engine_protocol()`
+1. Добавьте источник движка в `flake.nix`
+2. Установите исполняемый файл в папку `Engines/` внутри соответствующей Nix-сборки
+3. Добавьте запись в `BUILTIN_ENGINES` в `engine_registry.py`
+4. При необходимости укажите протокол в `get_engine_protocol()`
 
 ---
 

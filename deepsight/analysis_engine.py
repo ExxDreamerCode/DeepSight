@@ -29,11 +29,11 @@ class AnalysisEngine(QObject):
     def __init__(self, game_state: GameState, engine_path: str,
                  protocol: EngineProtocol = EngineProtocol.UCI,
                  classifier: Optional[MoveClassifier] = None,
-                 use_nnue: bool = False):
+                 use_nnue: bool = True):
         super().__init__()
         self.game_state = game_state
         self.engine = EngineManager(engine_path, protocol)
-        self.engine._use_nnue = use_nnue
+        self.engine.set_nnue(use_nnue)
         self.classifier = classifier or MoveClassifier()
 
         self.time_per_move: int = 1000

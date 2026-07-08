@@ -175,14 +175,14 @@ class MainWindow(QMainWindow):
         else:
             return
 
-        self._update_display_after_navigation()
+        self._update_display_after_navigation(scroll_history=True)
 
-    def _update_display_after_navigation(self):
+    def _update_display_after_navigation(self, scroll_history: bool = False):
         cur = self.game_state.current_move
         idx = self.game_state.current_move_index
         
         self.board.update()
-        self.move_list.refresh(select_index=idx)
+        self.move_list.select_move(idx, scroll=scroll_history)
 
         self._quick_evaluate()
         
@@ -351,10 +351,13 @@ class MainWindow(QMainWindow):
         self.game_state.board.push(move)
         self.game_state.current_move_index = len(self.game_state.moves) - 1
 
-        self.board.update()
-        self.move_list.refresh()
-        self.eval_bar.clear()
+        self.board.set_last_move(move)
         self.board.clear_arrow()
+        self.move_list.refresh(
+            select_index=self.game_state.current_move_index,
+            scroll=False
+        )
+        self.eval_bar.clear()
         self._skip_live = True
 
         self.status_label.setText(f"Move {len(self.game_state.moves)}: {am.san}")
@@ -407,7 +410,7 @@ class MainWindow(QMainWindow):
             idx = max(0, min(idx, len(self.game_state.moves) - 1))
         
         self.game_state.go_to_move(idx)
-        self._update_display_after_navigation()
+        self._update_display_after_navigation(scroll_history=False)
 
     def _start_analysis(self, _):
         self._stop_analysis()
@@ -543,8 +546,7 @@ class MainWindow(QMainWindow):
                 mate = -mate
 
         self.eval_bar.set_eval(score_cp=score_cp, mate=mate, depth=ev.depth or 0)
-        if bm:
-            self.board.set_best_move_arrow(bm.from_square, bm.to_square)
+        self._set_best_move_arrow(bm)
 
         if score_cp is not None:
             display = f"{score_cp / 100.0:+.2f}"
@@ -580,11 +582,16 @@ class MainWindow(QMainWindow):
 
     def _on_move_analyzed(self, md):
         try:
-            idx = self.game_state.moves.index(md)
-        except ValueError:
-            self.move_list.refresh()
+            idx = next(
+                i for i, move in enumerate(self.game_state.moves)
+                if move is md
+            )
+        except StopIteration:
+            self.move_list.refresh(scroll=False)
             return
-        self.move_list.refresh(select_index=idx, emit_signal=True)
+
+        self.move_list.refresh_move(idx)
+        self.move_list.select_move(idx, emit_signal=True, scroll=False)
 
     def _on_analysis_complete(self):
         self.progress_bar.setVisible(False)
@@ -621,8 +628,7 @@ class MainWindow(QMainWindow):
                 mate = -mate
 
         self.eval_bar.set_eval(score_cp=score_cp, mate=mate, depth=ev.depth or 0)
-        if bm:
-            self.board.set_best_move_arrow(bm.from_square, bm.to_square)
+        self._set_best_move_arrow(bm)
 
         if score_cp is not None:
             display = f"{score_cp / 100.0:+.2f}"
@@ -631,6 +637,13 @@ class MainWindow(QMainWindow):
         else:
             display = "?"
         self.status_label.setText(f"Analysis: {display} (depth={ev.depth})")
+
+    def _set_best_move_arrow(self, best_move: Optional[chess.Move]):
+        if best_move is None or best_move not in self.game_state.board.legal_moves:
+            self.board.clear_arrow()
+            return
+
+        self.board.set_best_move_arrow(best_move.from_square, best_move.to_square)
 
     def _menu_load_pgn(self):
         fp, _ = QFileDialog.getOpenFileName(self, "Load PGN", "", "PGN Files (*.pgn);;All Files (*.*)")

@@ -8,11 +8,6 @@ block_cipher = None
 
 ROOT_DIR = os.getcwd()
 
-engine_files = [
-    (os.path.join(ROOT_DIR, "Engines", "Ember.exe"), "Engines"),
-    (os.path.join(ROOT_DIR, "Engines", "stockfish-windows-x86-64.exe"), "Engines"),
-]
-
 piece_files = []
 pieces_dir = os.path.join(ROOT_DIR, "Images", "Pieces")
 for fname in os.listdir(pieces_dir):
@@ -34,7 +29,7 @@ for fname in os.listdir(books_dir):
     if os.path.isfile(fpath):
         book_files.append((fpath, "Books"))
 
-all_datas = engine_files + piece_files + move_icon_files + book_files
+all_datas = piece_files + move_icon_files + book_files
 
 a = Analysis(
     ['main.py'],

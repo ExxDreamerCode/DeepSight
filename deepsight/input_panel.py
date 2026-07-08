@@ -152,7 +152,7 @@ class InputPanel(QWidget):
         analysis_layout.addLayout(depth_layout)
 
         self.nnue_check = QCheckBox("Use NNUE")
-        self.nnue_check.setChecked(False)
+        self.nnue_check.setChecked(True)
         self.nnue_check.setStyleSheet("color: #ccc;")
         analysis_layout.addWidget(self.nnue_check)
 
@@ -180,6 +180,7 @@ class InputPanel(QWidget):
         layout.addWidget(analysis_group)
 
         self.setStyleSheet("""
+            QLabel, QCheckBox, QRadioButton { color: #ddd; }
             QGroupBox { color: #ccc; border: 1px solid #444; border-radius: 4px; margin-top: 8px; padding: 8px; }
             QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0 8px; }
             QPushButton { background-color: #333; color: #ccc; border: 1px solid #555; border-radius: 4px; padding: 4px 8px; }
@@ -200,7 +201,7 @@ class InputPanel(QWidget):
     def _select_external_engine(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select Chess Engine", "",
-            "Executables (*.exe);;All Files (*.*)"
+            "Engines (*.exe *);;All Files (*.*)"
         )
         if file_path:
             self._external_engine_path = file_path
@@ -209,10 +210,18 @@ class InputPanel(QWidget):
             self._update_engine_status()
 
     def _update_engine_status(self):
+        from .engine_registry import get_engine_path as resolve_engine_path
+
         if self._engine_type == "ember":
-            self.engine_status_label.setText("✓ Ember engine ready")
+            if resolve_engine_path("ember"):
+                self.engine_status_label.setText("Ember engine ready")
+            else:
+                self.engine_status_label.setText("Ember engine missing")
         elif self._engine_type == "stockfish":
-            self.engine_status_label.setText("✓ Stockfish engine ready")
+            if resolve_engine_path("stockfish"):
+                self.engine_status_label.setText("Stockfish engine ready")
+            else:
+                self.engine_status_label.setText("Stockfish engine missing")
         elif self._engine_type == "external":
             if self._external_engine_path:
                 name = Path(self._external_engine_path).name
@@ -272,7 +281,7 @@ class InputPanel(QWidget):
             self._engine_type = "ember"
             return fallback
 
-        return "Engines/Ember.exe"
+        return ""
 
     def get_protocol(self) -> EngineProtocol:
         if self._engine_type in ("ember", "stockfish"):
