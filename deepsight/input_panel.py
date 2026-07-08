@@ -159,10 +159,11 @@ class InputPanel(QWidget):
         analysis_layout.addWidget(self.nnue_check)
 
         analysis_buttons = QHBoxLayout()
-        self.btn_start = QPushButton("Start Analysis")
+        analysis_buttons.setSpacing(2)
+        self.btn_start = QPushButton("Start")
         self.btn_start.clicked.connect(self._start_analysis)
         self.btn_start.setStyleSheet("""
-            QPushButton { background-color: #2a6e3f; color: #fff; padding: 6px; border-radius: 4px; }
+            QPushButton { background-color: #2a6e3f; color: #fff; padding: 3px 3px; border-radius: 3px; font-size: 10px; }
             QPushButton:hover { background-color: #3a8e5f; }
             QPushButton:disabled { background-color: #333; color: #666; }
         """)
@@ -172,11 +173,19 @@ class InputPanel(QWidget):
         self.btn_stop.clicked.connect(self.analysis_stopped.emit)
         self.btn_stop.setEnabled(False)
         self.btn_stop.setStyleSheet("""
-            QPushButton { background-color: #8b3a3a; color: #fff; padding: 6px; border-radius: 4px; }
+            QPushButton { background-color: #8b3a3a; color: #fff; padding: 3px 3px; border-radius: 3px; font-size: 10px; }
             QPushButton:hover { background-color: #b54a4a; }
             QPushButton:disabled { background-color: #333; color: #666; }
         """)
         analysis_buttons.addWidget(self.btn_stop)
+
+        self.btn_flip = QPushButton("Flip")
+        self.btn_flip.setStyleSheet("""
+            QPushButton { background-color: #3a3a5a; color: #ddd; padding: 3px 3px; border-radius: 3px; font-size: 10px; }
+            QPushButton:hover { background-color: #5a5a8a; }
+        """)
+        self.btn_flip.clicked.connect(self._flip_board)
+        analysis_buttons.addWidget(self.btn_flip)
 
         analysis_layout.addLayout(analysis_buttons)
         layout.addWidget(analysis_group)
@@ -258,6 +267,14 @@ class InputPanel(QWidget):
         if move_str:
             self.move_input.emit(move_str)
             self.move_input_field.clear()
+
+    def _flip_board(self):
+        parent = self.parent()
+        while parent is not None:
+            if hasattr(parent, 'board') and hasattr(parent.board, 'flip_board'):
+                parent.board.flip_board()
+                break
+            parent = parent.parent()
 
     def _start_analysis(self):
         self.analysis_started.emit("start")
