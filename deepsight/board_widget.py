@@ -17,6 +17,8 @@ LAST_MOVE_LIGHT = QColor(205, 210, 106, 180)
 LAST_MOVE_DARK = QColor(170, 180, 80, 180)
 ARROW_COLOR = QColor(0, 255, 0, 120)
 ARROW_BORDER = QColor(0, 200, 0, 180)
+CHECK_COLOR = QColor(245, 145, 45)
+CHECKMATE_COLOR = QColor(220, 45, 45)
 BOARD_BG = QColor(26, 26, 26)
 COORD_COLOR = QColor(190, 190, 190)
 COORD_MARGIN = 22
@@ -176,6 +178,8 @@ class BoardWidget(QWidget):
                 painter.setBrush(QBrush(color))
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.drawRect(rect)
+
+        self._draw_check_marker(painter)
 
         if self._arrow_from is not None and self._arrow_to is not None:
             self._draw_arrow(painter, self._arrow_from, self._arrow_to)
@@ -357,6 +361,34 @@ class BoardWidget(QWidget):
                     scaled
                 )
             x += icon_size + spacing
+
+    def _draw_check_marker(self, painter: QPainter):
+        board = self.game_state.board
+        if not board.is_check():
+            return
+
+        king_square = board.king(board.turn)
+        if king_square is None:
+            return
+
+        color = CHECKMATE_COLOR if board.is_checkmate() else CHECK_COLOR
+        fill = QColor(color)
+        fill.setAlpha(85)
+        border = QColor(color)
+        border.setAlpha(230)
+
+        x, y = self.square_coords(king_square)
+        margin = self._square_size * 0.12
+        rect = QRectF(
+            x + margin,
+            y + margin,
+            self._square_size - margin * 2,
+            self._square_size - margin * 2
+        )
+
+        painter.setBrush(QBrush(fill))
+        painter.setPen(QPen(border, max(3, int(self._square_size * 0.06))))
+        painter.drawEllipse(rect)
 
     def _draw_arrow(self, painter: QPainter, from_sq: int, to_sq: int):
 

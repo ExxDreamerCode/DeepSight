@@ -63,12 +63,7 @@ class EvalBar(QWidget):
         h = self.height()
         painter.fillRect(self.rect(), QColor(26, 26, 26))
 
-        eval_text = ""
-        if self._mate is not None:
-            eval_text = f"#{'-' if self._mate < 0 else ''}{abs(self._mate)}"
-        elif self._score is not None:
-            sign = "+" if self._score > 0 else ""
-            eval_text = f"{sign}{self._score:.2f}"
+        eval_text = self._eval_text()
 
         has_text = bool(eval_text) or self._depth > 0
         text_area_height = 42 if has_text else 0
@@ -132,6 +127,18 @@ class EvalBar(QWidget):
                 break
             fitted.setPointSize(fitted.pointSize() - 1)
         return fitted
+
+    def _eval_text(self) -> str:
+        if self._mate is not None:
+            if self._mate == 0 or (self._depth == 0 and abs(self._mate) == 1):
+                return "#0"
+            return f"#{'-' if self._mate < 0 else ''}{abs(self._mate)}"
+
+        if self._score is not None:
+            sign = "+" if self._score > 0 else ""
+            return f"{sign}{self._score:.2f}"
+
+        return ""
 
     def _round_top_rect(self, rect: QRectF, radius: float):
 
