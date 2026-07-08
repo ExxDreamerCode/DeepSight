@@ -11,9 +11,17 @@ from pathlib import Path
 from .engine_manager import EngineProtocol
 
 
-BUILTIN_ENGINES: Dict[str, str] = {
-    "Ember": "Engines/Ember.exe",
-    "Stockfish": "Engines/stockfish-windows-x86-64.exe",
+BUILTIN_ENGINES: Dict[str, Tuple[str, ...]] = {
+    "Ember": (
+        "Engines/ember.exe",
+        "Engines/Ember.exe",
+        "Engines/ember",
+    ),
+    "Stockfish": (
+        "Engines/stockfish-windows-x86-64.exe",
+        "Engines/stockfish.exe",
+        "Engines/stockfish",
+    ),
 }
 
 _temp_dir: Optional[str] = None
@@ -35,11 +43,33 @@ atexit.register(_cleanup)
 
 
 def get_data_path(relative_path: str) -> str:
+    candidates = []
+
+    env_base = os.environ.get("DEEPSIGHT_DATA_DIR")
+    if env_base:
+        candidates.append(Path(env_base))
+
     if getattr(sys, 'frozen', False):
-        base = sys._MEIPASS
+        candidates.append(Path(sys._MEIPASS))
+        candidates.append(Path(sys.executable).resolve().parent)
     else:
-        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, relative_path)
+        candidates.append(Path(__file__).resolve().parent.parent)
+        candidates.append(Path.cwd())
+
+    for base in candidates:
+        path = base / relative_path
+        if path.exists():
+            return str(path)
+
+    return str(candidates[0] / relative_path)
+
+
+def _resolve_existing_data_path(relative_paths: Tuple[str, ...]) -> Optional[str]:
+    for rel_path in relative_paths:
+        path = get_data_path(rel_path)
+        if os.path.isfile(path):
+            return path
+    return None
 
 
 def extract_builtin_engine(name: str) -> Optional[str]:
@@ -51,16 +81,16 @@ def extract_builtin_engine(name: str) -> Optional[str]:
     if name not in BUILTIN_ENGINES:
         return None
 
-    rel_path = BUILTIN_ENGINES[name]
-    src_path = get_data_path(rel_path)
-
-    if not os.path.isfile(src_path):
+    src_path = _resolve_existing_data_path(BUILTIN_ENGINES[name])
+    if src_path is None:
         return None
 
     if _temp_dir is None:
         _temp_dir = tempfile.mkdtemp(prefix="deepsight_engines_")
 
-    dst_name = f"{name}.exe"
+    dst_name = os.path.basename(src_path)
+    if os.name == "nt" and not dst_name.lower().endswith(".exe"):
+        dst_name = f"{name}.exe"
     dst_path = os.path.join(_temp_dir, dst_name)
 
     try:
