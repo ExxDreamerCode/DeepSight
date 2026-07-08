@@ -46,10 +46,11 @@ python-chess>=1.999
 git clone https://github.com/ExxDreamerCode/DeepSight.git
 cd DeepSight
 pip install -r requirements.txt
+Engines/download-engines.bat
 python main.py
 ```
 
-В исходном дереве движки не хранятся. Для запуска встроенных движков из исходников положите совместимые UCI-исполняемые файлы в `Engines/` или используйте Nix-сборку ниже.
+В исходном дереве движки не хранятся. Для запуска встроенных движков из исходников положите совместимые UCI-исполняемые файлы в `Engines/` или используйте Nix-сборку ниже. Либо запустите download-engines.bat который автоматически подгрузит оба нужных движка. 
 
 ### Сборка через Nix для текущей системы
 
