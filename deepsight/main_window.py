@@ -351,10 +351,10 @@ class MainWindow(QMainWindow):
         self.game_state.board.push(move)
         self.game_state.current_move_index = len(self.game_state.moves) - 1
 
-        self.board.update()
+        self.board.set_last_move(move)
+        self.board.clear_arrow()
         self.move_list.refresh()
         self.eval_bar.clear()
-        self.board.clear_arrow()
         self._skip_live = True
 
         self.status_label.setText(f"Move {len(self.game_state.moves)}: {am.san}")
