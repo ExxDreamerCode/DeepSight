@@ -20,6 +20,14 @@ ARROW_BORDER = QColor(0, 200, 0, 180)
 BOARD_BG = QColor(26, 26, 26)
 COORD_COLOR = QColor(190, 190, 190)
 COORD_MARGIN = 22
+CAPTURE_MARGIN = 30
+PIECE_ORDER = {
+    chess.QUEEN: 0,
+    chess.ROOK: 1,
+    chess.BISHOP: 2,
+    chess.KNIGHT: 3,
+    chess.PAWN: 4,
+}
 
 class BoardWidget(QWidget):
 
@@ -125,6 +133,7 @@ class BoardWidget(QWidget):
 
         board_offset_x, board_offset_y, board_size = self._board_geometry()
 
+        self._draw_captured_pieces(painter, board_offset_x, board_offset_y, board_size)
         self._draw_coordinates(painter, board_offset_x, board_offset_y, board_size)
 
         painter.save()
@@ -198,8 +207,9 @@ class BoardWidget(QWidget):
         painter.restore()
 
     def _board_geometry(self) -> Tuple[int, int, int]:
+        vertical_margin = COORD_MARGIN + CAPTURE_MARGIN
         usable_width = max(8, self.width() - COORD_MARGIN * 2)
-        usable_height = max(8, self.height() - COORD_MARGIN * 2)
+        usable_height = max(8, self.height() - vertical_margin * 2)
         self._square_size = max(1, min(usable_width, usable_height) // 8)
         board_size = self._square_size * 8
         board_offset_x = (self.width() - board_size) // 2
@@ -246,6 +256,107 @@ class BoardWidget(QWidget):
                 Qt.AlignmentFlag.AlignCenter.value,
                 label
             )
+
+    def _draw_captured_pieces(self, painter: QPainter, board_x: int, board_y: int,
+                              board_size: int):
+        captured = self._captured_pieces_by_side()
+        top_side = chess.WHITE if self.flipped else chess.BLACK
+        bottom_side = chess.BLACK if self.flipped else chess.WHITE
+
+        top_rect = QRectF(
+            board_x,
+            board_y - COORD_MARGIN - CAPTURE_MARGIN,
+            board_size,
+            CAPTURE_MARGIN
+        )
+        bottom_rect = QRectF(
+            board_x,
+            board_y + board_size + COORD_MARGIN,
+            board_size,
+            CAPTURE_MARGIN
+        )
+
+        self._draw_captured_row(painter, top_rect, captured[top_side])
+        self._draw_captured_row(painter, bottom_rect, captured[bottom_side])
+
+    def _captured_pieces_by_side(self) -> Dict[chess.Color, List[chess.Piece]]:
+        captured: Dict[chess.Color, List[chess.Piece]] = {
+            chess.WHITE: [],
+            chess.BLACK: [],
+        }
+
+        if self.game_state.current_move_index < 0:
+            return captured
+
+        board = chess.Board()
+        try:
+            board.set_fen(self.game_state._initial_fen)
+        except Exception:
+            return captured
+
+        for index, analyzed_move in enumerate(self.game_state.moves):
+            if index > self.game_state.current_move_index:
+                break
+
+            move = analyzed_move.move
+            if move not in board.legal_moves:
+                break
+
+            moving_side = board.turn
+            if board.is_en_passant(move):
+                taken_piece = chess.Piece(chess.PAWN, not moving_side)
+            else:
+                taken_piece = board.piece_at(move.to_square)
+
+            if taken_piece is not None:
+                captured[moving_side].append(taken_piece)
+
+            board.push(move)
+
+        return captured
+
+    def _draw_captured_row(self, painter: QPainter, rect: QRectF,
+                           pieces: List[chess.Piece]):
+        if not pieces:
+            return
+
+        pieces = sorted(
+            pieces,
+            key=lambda piece: PIECE_ORDER.get(piece.piece_type, len(PIECE_ORDER))
+        )
+        icon_size = min(CAPTURE_MARGIN - 4, int(rect.width()) // len(pieces))
+        icon_size = max(10, icon_size)
+        spacing = 2 if icon_size * len(pieces) + 2 * (len(pieces) - 1) <= rect.width() else 0
+        total_width = icon_size * len(pieces) + spacing * (len(pieces) - 1)
+        x = rect.x() + 2
+        if total_width > rect.width():
+            x = rect.x()
+        y = rect.y() + (rect.height() - icon_size) / 2
+
+        for piece in pieces:
+            pixmap = self._pieces.get(piece.symbol())
+            if pixmap is None:
+                painter.setPen(COORD_COLOR)
+                painter.drawText(
+                    QRectF(x, y, icon_size, icon_size),
+                    Qt.AlignmentFlag.AlignCenter.value,
+                    piece.symbol()
+                )
+            else:
+                scaled = pixmap.scaled(
+                    icon_size,
+                    icon_size,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                offset_x = (icon_size - scaled.width()) // 2
+                offset_y = (icon_size - scaled.height()) // 2
+                painter.drawPixmap(
+                    int(x + offset_x),
+                    int(y + offset_y),
+                    scaled
+                )
+            x += icon_size + spacing
 
     def _draw_arrow(self, painter: QPainter, from_sq: int, to_sq: int):
 
