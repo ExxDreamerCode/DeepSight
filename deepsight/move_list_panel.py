@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QScrollArea, QFrame, QSizePolicy, QPushButton)
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QPixmap, QFont, QKeyEvent
 
 import chess
@@ -227,10 +227,17 @@ class MoveListPanel(QScrollArea):
     def _on_cell_clicked(self, move_index: int):
         if move_index < 0 or move_index >= len(self.game_state.moves):
             return
-        self._select_move(move_index)
+        self.select_move(move_index, emit_signal=True)
 
-    def _select_move(self, move_index: int, emit_signal: bool = True):
-        if move_index < 0 or move_index >= len(self.game_state.moves):
+    def select_move(self, move_index: int, emit_signal: bool = False, scroll: bool = False):
+        if move_index < 0:
+            self._selected_index = -1
+            for row in self._rows:
+                if isinstance(row, MoveRow):
+                    row.select_cell(-1)
+            return
+
+        if move_index >= len(self.game_state.moves):
             return
         self._selected_index = move_index
 
@@ -247,10 +254,14 @@ class MoveListPanel(QScrollArea):
                     row.select_cell(move_index)
                     break
 
+        if scroll:
+            self.scroll_to_move(move_index)
+
         if emit_signal:
             self.move_selected.emit(move_index)
 
-    def refresh(self, emit_signal: bool = False, select_index: Optional[int] = None):
+    def refresh(self, emit_signal: bool = False, select_index: Optional[int] = None,
+                scroll: bool = True):
         if select_index is not None:
             idx_to_select = select_index
         else:
@@ -261,10 +272,48 @@ class MoveListPanel(QScrollArea):
         self._build_list()
 
         if 0 <= idx_to_select < len(self.game_state.moves):
-            self._select_move(idx_to_select, emit_signal=emit_signal)
-            self.scroll_to_move(idx_to_select)
+            self.select_move(idx_to_select, emit_signal=emit_signal, scroll=scroll)
+            if not scroll:
+                self._restore_scroll_position(scroll_pos)
         else:
-            self.verticalScrollBar().setValue(scroll_pos)
+            self.select_move(-1)
+            self._restore_scroll_position(scroll_pos)
+
+    def _restore_scroll_position(self, scroll_pos: int):
+        self.verticalScrollBar().setValue(scroll_pos)
+        QTimer.singleShot(0, lambda: self.verticalScrollBar().setValue(scroll_pos))
+
+    def refresh_move(self, move_index: int):
+        if move_index < 0 or move_index >= len(self.game_state.moves):
+            return
+
+        for row_index, row in enumerate(self._rows):
+            if not isinstance(row, MoveRow):
+                continue
+            if (row.white_cell.move_index != move_index and
+                    row.black_cell.move_index != move_index):
+                continue
+
+            scroll_pos = self.verticalScrollBar().value()
+            layout_index = self.layout.indexOf(row)
+            white_index = row.white_cell.move_index
+            black_index = row.black_cell.move_index
+            moves = self.game_state.moves
+
+            white_move = moves[white_index] if 0 <= white_index < len(moves) else None
+            black_move = moves[black_index] if 0 <= black_index < len(moves) else None
+            replacement = MoveRow(row.move_number, white_move, black_move)
+            replacement.cell_clicked.connect(self._on_cell_clicked)
+            replacement.select_cell(self._selected_index)
+
+            self.layout.removeWidget(row)
+            row.deleteLater()
+            self._rows[row_index] = replacement
+            self.layout.insertWidget(layout_index, replacement)
+            self._restore_scroll_position(scroll_pos)
+            return
+
+        self.refresh(scroll=False)
 
     def scroll_to_move(self, move_index: int):
         for row in self._rows:
