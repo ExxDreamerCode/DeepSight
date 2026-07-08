@@ -17,6 +17,9 @@ LAST_MOVE_LIGHT = QColor(205, 210, 106, 180)
 LAST_MOVE_DARK = QColor(170, 180, 80, 180)
 ARROW_COLOR = QColor(0, 255, 0, 120)
 ARROW_BORDER = QColor(0, 200, 0, 180)
+BOARD_BG = QColor(26, 26, 26)
+COORD_COLOR = QColor(190, 190, 190)
+COORD_MARGIN = 22
 
 class BoardWidget(QWidget):
 
@@ -94,10 +97,10 @@ class BoardWidget(QWidget):
         rank = chess.square_rank(sq)
 
         if self.flipped:
-            x = file * self._square_size
+            x = (7 - file) * self._square_size
             y = rank * self._square_size
         else:
-            x = (7 - file) * self._square_size
+            x = file * self._square_size
             y = (7 - rank) * self._square_size
 
         return x, y
@@ -111,22 +114,20 @@ class BoardWidget(QWidget):
             return None
 
         if self.flipped:
-            return chess.square(file, rank)
-        else:
-            return chess.square(7 - file, 7 - rank)
+            return chess.square(7 - file, rank)
+        return chess.square(file, 7 - rank)
 
     def paintEvent(self, event):
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.fillRect(self.rect(), BOARD_BG)
 
-        w = self.width()
-        h = self.height()
-        self._square_size = min(w, h) // 8
+        board_offset_x, board_offset_y, board_size = self._board_geometry()
 
-        board_offset_x = (w - self._square_size * 8) // 2
-        board_offset_y = (h - self._square_size * 8) // 2
+        self._draw_coordinates(painter, board_offset_x, board_offset_y, board_size)
 
+        painter.save()
         painter.translate(board_offset_x, board_offset_y)
 
         for sq in range(64):
@@ -136,7 +137,7 @@ class BoardWidget(QWidget):
             x, y = self.square_coords(sq)
             rect = QRectF(x, y, self._square_size, self._square_size)
 
-            is_light = (file + rank) % 2 == 0
+            is_light = (file + rank) % 2 == 1
             color = LIGHT_SQ if is_light else DARK_SQ
 
             if sq in self._last_move_squares:
@@ -194,6 +195,57 @@ class BoardWidget(QWidget):
         painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
         painter.setPen(QPen(QColor(100, 100, 100), 2))
         painter.drawRect(0, 0, self._square_size * 8, self._square_size * 8)
+        painter.restore()
+
+    def _board_geometry(self) -> Tuple[int, int, int]:
+        usable_width = max(8, self.width() - COORD_MARGIN * 2)
+        usable_height = max(8, self.height() - COORD_MARGIN * 2)
+        self._square_size = max(1, min(usable_width, usable_height) // 8)
+        board_size = self._square_size * 8
+        board_offset_x = (self.width() - board_size) // 2
+        board_offset_y = (self.height() - board_size) // 2
+        return board_offset_x, board_offset_y, board_size
+
+    def _square_at_board_cell(self, col: int, row: int) -> int:
+        if self.flipped:
+            return chess.square(7 - col, row)
+        return chess.square(col, 7 - row)
+
+    def _draw_coordinates(self, painter: QPainter, board_x: int, board_y: int,
+                          board_size: int):
+        font = QFont("Segoe UI", 9, QFont.Weight.Bold)
+        painter.setFont(font)
+        painter.setPen(COORD_COLOR)
+
+        for col in range(8):
+            sq = self._square_at_board_cell(col, 0)
+            label = chess.FILE_NAMES[chess.square_file(sq)]
+            x = board_x + col * self._square_size
+            painter.drawText(
+                QRectF(x, board_y - COORD_MARGIN, self._square_size, COORD_MARGIN),
+                Qt.AlignmentFlag.AlignCenter.value,
+                label
+            )
+            painter.drawText(
+                QRectF(x, board_y + board_size, self._square_size, COORD_MARGIN),
+                Qt.AlignmentFlag.AlignCenter.value,
+                label
+            )
+
+        for row in range(8):
+            sq = self._square_at_board_cell(0, row)
+            label = str(chess.square_rank(sq) + 1)
+            y = board_y + row * self._square_size
+            painter.drawText(
+                QRectF(board_x - COORD_MARGIN, y, COORD_MARGIN, self._square_size),
+                Qt.AlignmentFlag.AlignCenter.value,
+                label
+            )
+            painter.drawText(
+                QRectF(board_x + board_size, y, COORD_MARGIN, self._square_size),
+                Qt.AlignmentFlag.AlignCenter.value,
+                label
+            )
 
     def _draw_arrow(self, painter: QPainter, from_sq: int, to_sq: int):
 
@@ -246,8 +298,9 @@ class BoardWidget(QWidget):
         if self.game_state.board.is_game_over():
             return
 
-        x = event.position().x() - (self.width() - self._square_size * 8) // 2
-        y = event.position().y() - (self.height() - self._square_size * 8) // 2
+        board_offset_x, board_offset_y, _ = self._board_geometry()
+        x = event.position().x() - board_offset_x
+        y = event.position().y() - board_offset_y
 
         sq = self.screen_to_square(x, y)
         if sq is None:
