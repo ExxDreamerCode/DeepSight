@@ -31,7 +31,6 @@
 
 - Python 3.11+
 - Linux x86_64 для Nix-сборки текущей системы
-- Windows x86_64 для готового portable-архива или NSIS-установщика
 
 ### Зависимости
 
@@ -64,34 +63,16 @@ nix build .#
 - Ember собирается из закрепленного исходного релиза `ExxDreamerCode/Ember`
 - Stockfish скачивается из закрепленного релиза `official-stockfish/Stockfish`
 
-### Сборка Windows portable-архива через Nix
+### Сборка Windows exe вручную
 
-```bash
-nix build .#windows
-```
-
-Готовый архив будет лежать в `result/DeepSight-0.1.0-windows-x86_64.zip`. Его можно публиковать как portable Windows-сборку. В архив входят `DeepSight.exe`, embedded Python runtime, Python-зависимости и скачанные Nix движки `Engines/ember.exe` и `Engines/stockfish-windows-x86-64.exe`.
-
-### Сборка Windows NSIS-установщика
-
-```bash
-nix build .#windows-installer
-```
-
-Готовый установщик будет лежать в `result/DeepSight-0.1.0-setup.exe`.
-
-NSIS-установщик не содержит движки. Во время установки он запускает `install-engines.ps1`, скачивает Ember и Stockfish по закрепленным URL, проверяет SHA-256 и распаковывает Stockfish в папку `Engines/`. Для этого на машине пользователя нужны интернет-доступ и PowerShell. Если установка выполняется в среде без сетевого доступа, используйте portable-архив `.#windows`, где движки уже включены.
-
-### Сборка исполняемого файла
-
-Для ручной сборки используется PyInstaller. Конфигурация находится в `deepsight.spec`.
+Nix-сборка поддерживается только для Linux. Для Windows используйте PyInstaller вручную. Конфигурация находится в `deepsight.spec`.
 
 ```bash
 pip install pyinstaller
 pyinstaller deepsight.spec --clean --noconfirm
 ```
 
-Готовый `.exe` появится в папке `dist/`. PyInstaller-спецификация не встраивает движки; положите их рядом с приложением в `Engines/` или используйте Nix-цели для Windows.
+Готовый `.exe` появится в папке `dist/`. PyInstaller-спецификация не встраивает движки; положите совместимые Windows UCI-движки рядом с приложением в `Engines/` или запустите `Engines/download-engines.bat`.
 
 ---
 
@@ -128,12 +109,12 @@ pyinstaller deepsight.spec --clean --noconfirm
 
 ## Встроенные движки
 
-| Движок | Linux Nix-сборка | Windows bundle | Протокол |
+| Движок | Linux Nix-сборка | Windows вручную | Протокол |
 |--------|-------------------|----------------|----------|
 | **Ember** | `Engines/ember` | `Engines/ember.exe` | UCI |
 | **Stockfish** | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe` | UCI |
 
-Движки не коммитятся в репозиторий. Nix скачивает или собирает их как часть derivation. Portable Windows-архив содержит `.exe` движки, а NSIS-установщик скачивает их на машине пользователя во время установки.
+Движки не коммитятся в репозиторий. Linux Nix-сборка скачивает или собирает их как часть derivation. Для Windows положите совместимые `.exe` движки в `Engines/` рядом с приложением или запустите `Engines/download-engines.bat`.
 
 ---
 
@@ -159,7 +140,7 @@ pyinstaller deepsight.spec --clean --noconfirm
 ### Добавление нового движка
 
 1. Добавьте источник движка в `flake.nix`
-2. Установите исполняемый файл в папку `Engines/` внутри соответствующей Nix-сборки
+2. Установите исполняемый файл в папку `Engines/` внутри Linux Nix-сборки
 3. Добавьте запись в `BUILTIN_ENGINES` в `engine_registry.py`
 4. При необходимости укажите протокол в `get_engine_protocol()`
 
