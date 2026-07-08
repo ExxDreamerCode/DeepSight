@@ -11,7 +11,7 @@ class EvalBar(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedWidth(40)
+        self.setFixedWidth(52)
         self.setMinimumHeight(200)
 
         self._score: Optional[float] = None
@@ -61,8 +61,18 @@ class EvalBar(QWidget):
 
         w = self.width()
         h = self.height()
+        painter.fillRect(self.rect(), QColor(26, 26, 26))
 
-        bar_rect = QRectF(5, 5, w - 10, h - 10)
+        eval_text = ""
+        if self._mate is not None:
+            eval_text = f"#{'-' if self._mate < 0 else ''}{abs(self._mate)}"
+        elif self._score is not None:
+            sign = "+" if self._score > 0 else ""
+            eval_text = f"{sign}{self._score:.2f}"
+
+        has_text = bool(eval_text) or self._depth > 0
+        text_area_height = 42 if has_text else 0
+        bar_rect = QRectF(5, 5, w - 10, max(20, h - text_area_height - 10))
         painter.setBrush(QBrush(self.black_color))
         painter.setPen(QPen(QColor(100, 100, 100), 1))
         painter.drawRoundedRect(bar_rect, 4, 4)
@@ -91,28 +101,37 @@ class EvalBar(QWidget):
             int(bar_rect.y() + white_height)
         )
 
-        font = QFont("Segoe UI", 10, QFont.Weight.Bold)
-        painter.setFont(font)
-        painter.setPen(QColor(255, 255, 255))
-
-        eval_text = ""
-        if self._mate is not None:
-            eval_text = f"#{'−' if self._mate < 0 else ''}{abs(self._mate)}"
-        elif self._score is not None:
-            sign = "+" if self._score > 0 else ""
-            eval_text = f"{sign}{self._score:.2f}"
+        if has_text:
+            label_rect = QRectF(2, h - text_area_height + 3, w - 4, text_area_height - 6)
+            painter.setBrush(QBrush(QColor(18, 18, 18)))
+            painter.setPen(QPen(QColor(55, 55, 55), 1))
+            painter.drawRoundedRect(label_rect, 4, 4)
 
         if eval_text:
-            text_rect = QRectF(0, h - 30, w, 30)
+            text_rect = QRectF(3, h - text_area_height + 5, w - 6, 19)
+            font = self._fitted_font(painter, QFont("Segoe UI", 10, QFont.Weight.Bold),
+                                     eval_text, int(text_rect.width()))
+            painter.setFont(font)
+            painter.setPen(QColor(245, 245, 245))
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter.value, eval_text)
 
         if self._depth > 0:
-            font.setPointSize(8)
-            painter.setFont(font)
-            painter.setPen(QColor(200, 200, 200))
             depth_text = f"d={self._depth}"
-            depth_rect = QRectF(0, h - 16, w, 16)
+            depth_rect = QRectF(3, h - text_area_height + 24, w - 6, 15)
+            font = self._fitted_font(painter, QFont("Segoe UI", 8), depth_text,
+                                     int(depth_rect.width()))
+            painter.setFont(font)
+            painter.setPen(QColor(190, 190, 190))
             painter.drawText(depth_rect, Qt.AlignmentFlag.AlignCenter.value, depth_text)
+
+    def _fitted_font(self, painter: QPainter, font: QFont, text: str, max_width: int) -> QFont:
+        fitted = QFont(font)
+        while fitted.pointSize() > 6:
+            painter.setFont(fitted)
+            if painter.fontMetrics().horizontalAdvance(text) <= max_width:
+                break
+            fitted.setPointSize(fitted.pointSize() - 1)
+        return fitted
 
     def _round_top_rect(self, rect: QRectF, radius: float):
 

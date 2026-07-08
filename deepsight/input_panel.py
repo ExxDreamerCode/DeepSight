@@ -180,6 +180,7 @@ class InputPanel(QWidget):
         layout.addWidget(analysis_group)
 
         self.setStyleSheet("""
+            QLabel, QCheckBox, QRadioButton { color: #ddd; }
             QGroupBox { color: #ccc; border: 1px solid #444; border-radius: 4px; margin-top: 8px; padding: 8px; }
             QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0 8px; }
             QPushButton { background-color: #333; color: #ccc; border: 1px solid #555; border-radius: 4px; padding: 4px 8px; }
