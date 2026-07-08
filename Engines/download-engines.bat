@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo Downloading Ember...
-powershell -Command "Invoke-WebRequest -Uri 'https://github.com/ExxDreamerCode/Ember/releases/download/V1.1.1/ember.exe' -OutFile 'ember.exe' -UseBasicParsing"
+powershell -Command "Invoke-WebRequest -Uri 'https://github.com/ExxDreamerCode/Ember/releases/download/V1.1.2/ember.exe' -OutFile 'ember.exe' -UseBasicParsing"
 if errorlevel 1 (
     echo Failed to download Ember!
     pause

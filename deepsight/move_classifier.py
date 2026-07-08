@@ -4,18 +4,21 @@ import glob
 from typing import Set, Optional, List
 import chess
 import chess.pgn
+import chess.polyglot
 
 
 class BookChecker:
     def __init__(self, books_dir: str = "Books"):
         self.books_dir = books_dir
         self.book_moves: Set[str] = set()
+        self._polyglot_readers: List[chess.polyglot.MemoryMappedReader] = []
         self._loaded = False
 
     def load_books(self) -> int:
         from .engine_registry import get_data_path
 
         self.book_moves.clear()
+        self._polyglot_readers.clear()
         count = 0
 
         search_dirs = [self.books_dir]
@@ -40,11 +43,26 @@ class BookChecker:
                 elif ext == ".txt" or ext == ".bk":
                     n = self._load_text_book(filepath)
                     count += n
+                elif ext == ".bin":
+                    n = self._load_polyglot_book(filepath)
+                    count += n
             except Exception as e:
                 print(f"Failed to load book {filepath}: {e}")
 
         self._loaded = True
         return count
+
+    def _load_polyglot_book(self, filepath: str) -> int:
+        try:
+            reader = chess.polyglot.MemoryMappedReader(filepath)
+            self._polyglot_readers.append(reader)
+            size = os.path.getsize(filepath)
+            count = size // 16
+            print(f"Loaded PolyGlot book: {filepath} ({count} entries)")
+            return count
+        except Exception as e:
+            print(f"Error loading PolyGlot book {filepath}: {e}")
+            return 0
 
     def _load_pgn_book(self, filepath: str) -> int:
         count = 0
@@ -114,12 +132,20 @@ class BookChecker:
         if not self._loaded:
             self.load_books()
 
+        if self._polyglot_readers:
+            for reader in self._polyglot_readers:
+                try:
+                    for entry in reader.find_all(board):
+                        if entry.move == move:
+                            return True
+                except Exception:
+                    continue
+
         if not self.book_moves:
             return False
 
         fen = board.fen()
         move_uci = move.uci()
-
         return f"{fen}|{move_uci}" in self.book_moves
 
 

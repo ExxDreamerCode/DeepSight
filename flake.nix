@@ -33,7 +33,7 @@
                 || lib.hasPrefix "result-" relPath);
           };
 
-          emberVersion = "1.1.1";
+          emberVersion = "1.1.2";
           stockfishRelease = "sf_18";
           pythonWindowsVersion = "3.11.9";
 
