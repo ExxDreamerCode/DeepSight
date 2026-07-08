@@ -4,7 +4,7 @@ import threading
 import time
 import re
 import os
-from typing import Optional, Callable, List, Tuple
+from typing import Optional, List, Dict
 from enum import Enum
 
 import chess
@@ -25,7 +25,8 @@ class EngineManager:
         self._name = ""
         self._ready = False
         self._reader_thread: Optional[threading.Thread] = None
-        self._use_nnue = False
+        self._use_nnue: Optional[bool] = None
+        self._uci_options: Dict[str, str] = {}
 
     @property
     def name(self) -> str:
@@ -54,17 +55,13 @@ class EngineManager:
             if self.protocol == EngineProtocol.UCI:
                 self._send("uci")
                 self._wait_for("uciok", timeout=5.0)
+                self._parse_uci_options()
+
+                self._send_option_if_supported("book", "")
+                self._apply_nnue_option()
+
                 self._send("isready")
                 self._wait_for("readyok", timeout=5.0)
-                self._send("setoption name book value ")
-
-                if self._use_nnue:
-                    self._send("setoption name Use NNUE value true")
-                    self._send("setoption name NNUE value <embedded>")
-                else:
-                    self._send("setoption name Use NNUE value false")
-                    self._send("setoption name EvalFile value ")
-                    self._send("setoption name NNUE value ")
                 time.sleep(0.1)
 
             elif self.protocol == EngineProtocol.XBOARD:
@@ -150,17 +147,42 @@ class EngineManager:
         if self.protocol == EngineProtocol.UCI:
             self._send("setoption name " + name + " value " + value)
 
-    def set_nnue(self, enabled: bool):
+    def set_nnue(self, enabled: Optional[bool]):
 
         self._use_nnue = enabled
-        if self.protocol == EngineProtocol.UCI:
-            if enabled:
-                self._send("setoption name Use NNUE value true")
-                self._send("setoption name NNUE value <embedded>")
-            else:
-                self._send("setoption name Use NNUE value false")
-                self._send("setoption name EvalFile value ")
-                self._send("setoption name NNUE value ")
+        if self.protocol == EngineProtocol.UCI and self._ready:
+            self._apply_nnue_option()
+
+    def _parse_uci_options(self):
+        with self._lock:
+            lines = list(self.stdout_buffer)
+
+        self._uci_options.clear()
+        for line in lines:
+            m = re.match(r'^option\s+name\s+(.+?)\s+type\s+\S+', line, re.IGNORECASE)
+            if m:
+                name = m.group(1).strip()
+                self._uci_options[name.lower()] = name
+
+    def _send_option_if_supported(self, name: str, value: str) -> bool:
+        option_name = self._uci_options.get(name.lower())
+        if option_name is None:
+            return False
+
+        self._send("setoption name " + option_name + " value " + value)
+        return True
+
+    def _apply_nnue_option(self):
+        if self._use_nnue is None:
+            return
+
+        enabled = "true" if self._use_nnue else "false"
+        sent_use_nnue = self._send_option_if_supported("Use NNUE", enabled)
+
+        if self._use_nnue:
+            self._send_option_if_supported("NNUE", "<embedded>")
+        elif not sent_use_nnue and not self._send_option_if_supported("NNUE", ""):
+            self._send_option_if_supported("EvalFile", "")
 
     def _send(self, command: str):
         if self.process and self.process.stdin:

@@ -152,7 +152,7 @@ class InputPanel(QWidget):
         analysis_layout.addLayout(depth_layout)
 
         self.nnue_check = QCheckBox("Use NNUE")
-        self.nnue_check.setChecked(False)
+        self.nnue_check.setChecked(True)
         self.nnue_check.setStyleSheet("color: #ccc;")
         analysis_layout.addWidget(self.nnue_check)
 
