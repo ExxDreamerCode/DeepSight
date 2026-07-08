@@ -313,7 +313,9 @@ class MoveListPanel(QScrollArea):
             self._restore_scroll_position(scroll_pos)
             return
 
+        scroll_pos = self.verticalScrollBar().value()
         self.refresh(scroll=False)
+        self._restore_scroll_position(scroll_pos)
 
     def scroll_to_move(self, move_index: int):
         for row in self._rows:
