@@ -1,9 +1,9 @@
 ﻿from typing import Optional
 
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout,
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
                              QStatusBar, QLabel, QProgressBar,
                              QMessageBox, QMenuBar, QMenu, QFileDialog,
-                             QDialog, QVBoxLayout, QTextEdit, QPushButton)
+                             QDialog, QTextEdit, QPushButton)
 from PyQt6.QtCore import Qt, QTimer, QMutex, QMutexLocker
 from PyQt6.QtGui import QAction, QKeyEvent
 
@@ -275,6 +275,9 @@ class MainWindow(QMainWindow):
     def _test_engine_direct(self):
         ep = self.input_panel.get_engine_path()
         pr = self.input_panel.get_protocol()
+        if not ep:
+            self._debug("No engine path available")
+            return
         self._debug(f"Testing engine: {ep} ({pr.value})")
         from .engine_manager import EngineManager
         eng = EngineManager(ep, pr)
@@ -427,6 +430,9 @@ class MainWindow(QMainWindow):
         if not self.game_state.moves:
             QMessageBox.warning(self, "Warning", "No moves to analyze. Load PGN or make moves first.")
             return
+        if not ep:
+            QMessageBox.warning(self, "Engine Error", "No engine found. Please select an engine.")
+            return
 
         self._debug(f"Starting analysis: engine={ep}, protocol={pr.value}, moves={len(self.game_state.moves)}")
 
@@ -511,6 +517,9 @@ class MainWindow(QMainWindow):
 
             ep = self.input_panel.get_engine_path()
             pr = self.input_panel.get_protocol()
+
+            if not ep:
+                return
 
             if self.quick_eval is None:
                 self.quick_eval = QuickEvaluator(ep, pr, movetime_ms=1500)

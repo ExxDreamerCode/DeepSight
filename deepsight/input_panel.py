@@ -269,7 +269,7 @@ class InputPanel(QWidget):
     def get_engine_type(self) -> str:
         return self._engine_type
 
-    def get_engine_path(self) -> str:
+    def get_engine_path(self) -> Optional[str]:
         from .engine_registry import get_engine_path as resolve_engine_path
 
         path = resolve_engine_path(self._engine_type, self._external_engine_path)
@@ -281,7 +281,7 @@ class InputPanel(QWidget):
             self._engine_type = "ember"
             return fallback
 
-        return ""
+        return None
 
     def get_protocol(self) -> EngineProtocol:
         if self._engine_type in ("ember", "stockfish"):

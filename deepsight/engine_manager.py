@@ -33,18 +33,22 @@ class EngineManager:
         return self._name or os.path.basename(self.engine_path)
 
     def start(self) -> bool:
+        if not self.engine_path:
+            print("Failed to start engine: engine path is empty")
+            return False
+
         try:
             startupinfo = None
             if os.name == 'nt':
                 startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.dwFlags = subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
 
             self.process = subprocess.Popen(
                 [self.engine_path],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                bufsize=0,
                 startupinfo=startupinfo
             )
 

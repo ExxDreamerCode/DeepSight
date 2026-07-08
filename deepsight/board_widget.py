@@ -319,6 +319,28 @@ class BoardWidget(QWidget):
 
         return captured
 
+    def _material_balance(self) -> str:
+        captured = self._captured_pieces_by_side()
+        
+        piece_values = {
+            chess.PAWN: 1,
+            chess.KNIGHT: 3,
+            chess.BISHOP: 3,
+            chess.ROOK: 5,
+            chess.QUEEN: 9,
+        }
+        
+        white_material = sum(piece_values.get(p.piece_type, 0) for p in captured[chess.WHITE])
+        black_material = sum(piece_values.get(p.piece_type, 0) for p in captured[chess.BLACK])
+        
+        diff = white_material - black_material
+        
+        if diff > 0:
+            return f"+{diff}"
+        elif diff < 0:
+            return str(diff)
+        return "0"
+
     def _draw_captured_row(self, painter: QPainter, rect: QRectF,
                            pieces: List[chess.Piece]):
         if not pieces:
@@ -361,6 +383,9 @@ class BoardWidget(QWidget):
                     scaled
                 )
             x += icon_size + spacing
+
+    def material_label_text(self) -> str:
+        return self._material_balance()
 
     def _draw_check_marker(self, painter: QPainter):
         board = self.game_state.board
