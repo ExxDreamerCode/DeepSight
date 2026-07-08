@@ -529,7 +529,7 @@ class MainWindow(QMainWindow):
             else:
                 self.quick_eval.update_settings(ep, pr, movetime_ms=1500)
 
-            self.quick_eval.evaluate(self.game_state.board)
+            self.quick_eval.evaluate_infinite(self.game_state.board)
         except Exception as e:
             print(f"Quick evaluate error (non-critical): {e}")
 

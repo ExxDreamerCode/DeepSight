@@ -40,6 +40,7 @@ class QuickEvaluator(QObject):
         self._pending_fen: Optional[str] = None
         self._pending_gen = 0
         self._pending_board: Optional[chess.Board] = None
+        self._infinite = False
 
     def ensure_started(self) -> bool:
         if self._engine is not None and self._engine._ready:
@@ -47,17 +48,21 @@ class QuickEvaluator(QObject):
         self._engine = EngineManager(self._engine_path, self._protocol)
         return self._engine.start()
 
-    def _launch_search(self, board: chess.Board, gen: int):
+    def _launch_search(self, board: chess.Board, gen: int, infinite: bool = False):
         if not self.ensure_started():
             return
         self._engine.set_position(board)
         self._engine.get_output()
-        self._engine.start_analysis(movetime=self._movetime_ms)
+        if infinite:
+            self._engine.start_analysis(infinite=True)
+        else:
+            self._engine.start_analysis(movetime=self._movetime_ms)
         self._board_turn = board.turn
         self._fen = board.fen()
         self._running_generation = gen
         self._running = True
         self._awaiting_stop = False
+        self._infinite = infinite
         self._start_time = time.time()
 
     def evaluate(self, board: chess.Board):
@@ -76,23 +81,47 @@ class QuickEvaluator(QObject):
             self._last_depth = 0
 
         if self._running:
-            if not self._awaiting_stop:
+            if not self._awaiting_stop and not self._infinite:
                 self._awaiting_stop = True
                 self._engine.stop_analysis()
                 self._engine.get_output()
-            self._pending_board = board
-            self._pending_fen = board.fen()
-            self._pending_gen = current_gen
-            if self._timer is None:
-                self._timer = QTimer()
-                self._timer.timeout.connect(self._poll)
-                self._timer.start(50)
+            if self._infinite:
+                self._engine.stop_analysis()
+                self._engine.get_output()
+                self._launch_search(board, current_gen, infinite=True)
+            else:
+                self._pending_board = board
+                self._pending_fen = board.fen()
+                self._pending_gen = current_gen
+                if self._timer is None:
+                    self._timer = QTimer()
+                    self._timer.timeout.connect(self._poll)
+                    self._timer.start(50)
             return
 
         if self._timer:
             self._timer.stop()
 
         self._launch_search(board, current_gen)
+
+        if self._timer is None:
+            self._timer = QTimer()
+            self._timer.timeout.connect(self._poll)
+        self._timer.start(50)
+
+    def evaluate_infinite(self, board: chess.Board):
+        """Start infinite (live) analysis. Runs until stop() is called."""
+        if not self.ensure_started():
+            return
+
+        self._generation += 1
+        current_gen = self._generation
+
+        if self._running:
+            self._engine.stop_analysis()
+            self._engine.get_output()
+
+        self._launch_search(board, current_gen, infinite=True)
 
         if self._timer is None:
             self._timer = QTimer()
@@ -132,7 +161,7 @@ class QuickEvaluator(QObject):
             self._stop()
             return
 
-        timeout = time.time() - self._start_time > self._movetime_ms / 1000.0 + 0.5
+        timeout = not self._infinite and (time.time() - self._start_time > self._movetime_ms / 1000.0 + 0.5)
 
         for line in lines:
             if self._generation != my_gen:
@@ -148,8 +177,19 @@ class QuickEvaluator(QObject):
                     except:
                         pass
                 self._emit_final()
-                self._stop()
-                return
+                if self._infinite:
+                    if self._engine and self._fen is not None:
+                        try:
+                            board = chess.Board(self._fen)
+                            self._engine.stop_analysis()
+                            self._engine.get_output()
+                            self._launch_search(board, self._generation, infinite=True)
+                        except:
+                            self._stop()
+                    return
+                else:
+                    self._stop()
+                    return
 
             info = self._engine.parse_uci_info(line)
             if info is None:
@@ -219,6 +259,7 @@ class QuickEvaluator(QObject):
     def _stop(self):
         self._running = False
         self._awaiting_stop = False
+        self._infinite = False
         self._fen = None
         self._pending_board = None
         self._pending_fen = None
@@ -252,6 +293,7 @@ class QuickEvaluator(QObject):
     def stop_analysis_only(self):
         self._running = False
         self._awaiting_stop = False
+        self._infinite = False
         self._pending_board = None
         self._pending_fen = None
         self._pending_gen = 0
