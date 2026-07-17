@@ -239,23 +239,10 @@ class MoveClassifier:
                 return "Best"
             return _classify_by_loss_with_missed_mate()
 
-        if mate_for_player_after:
-            if board_before.turn == chess.WHITE:
-                clearly_winning = eval_before > 1.5
-            else:
-                clearly_winning = eval_before < -1.5
-            if is_best:
-                if clearly_winning:
-                    return "Brilliant"
-                return "Best"
-            if not clearly_winning:
-                return "Brilliant"
-            return "Excellent"
-
         if mate_for_opponent_after:
             if is_best:
                 return "Best"
-            return "Inaccuracy"
+            return "Blunder"
 
         if board_before.turn == chess.WHITE:
             eval_after_fixed = -eval_after

@@ -25,6 +25,7 @@ class AnalysisEngine(QObject):
     live_updated = pyqtSignal(object, object, object)
     analysis_complete = pyqtSignal()
     analysis_error = pyqtSignal(str)
+    engine_output = pyqtSignal(str)
 
     def __init__(self, game_state: GameState, engine_path: str,
                  protocol: EngineProtocol = EngineProtocol.UCI,
@@ -214,6 +215,7 @@ class AnalysisEngine(QObject):
                     got_bestmove = False
                     lines = self.engine.get_output()
                     for line in lines:
+                        self.engine_output.emit(line)
                         eval_data, bm, is_bestmove = self._parse_uci_line(line)
 
                         if is_bestmove:
@@ -263,6 +265,7 @@ class AnalysisEngine(QObject):
                     got_bestmove = False
                     lines = self.engine.get_output()
                     for line in lines:
+                        self.engine_output.emit(line)
                         if line.startswith("bestmove"):
                             got_bestmove = True
                             break
@@ -339,6 +342,7 @@ class AnalysisEngine(QObject):
 
                 lines = self.engine.get_output()
                 for line in lines:
+                    self.engine_output.emit(line)
                     eval_data, best_move, is_bestmove = self._parse_uci_line(line)
                     if eval_data:
                         self._live_eval = eval_data

@@ -13,6 +13,7 @@ from .models.game_state import MoveEval
 class QuickEvaluator(QObject):
 
     eval_ready = pyqtSignal(object, object, object)
+    engine_output = pyqtSignal(str)
 
     def __init__(self, engine_path: str = "",
                  protocol: EngineProtocol = EngineProtocol.UCI,
@@ -164,6 +165,7 @@ class QuickEvaluator(QObject):
         timeout = not self._infinite and (time.time() - self._start_time > self._movetime_ms / 1000.0 + 0.5)
 
         for line in lines:
+            self.engine_output.emit(line)
             if self._generation != my_gen:
                 self._stop()
                 return

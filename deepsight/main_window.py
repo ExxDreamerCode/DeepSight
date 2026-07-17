@@ -270,7 +270,6 @@ class MainWindow(QMainWindow):
 
     def _debug(self, text: str):
         self._debug_dialog.append(text)
-        print(text)
 
     def _test_engine_direct(self):
         ep = self.input_panel.get_engine_path()
@@ -454,6 +453,7 @@ class MainWindow(QMainWindow):
         self.analysis.progress_changed.connect(self._on_analysis_progress)
         self.analysis.analysis_complete.connect(self._on_analysis_complete)
         self.analysis.analysis_error.connect(self._on_analysis_error)
+        self.analysis.engine_output.connect(self._debug)
 
         self.status_label.setText("Analyzing...")
         self.analysis.start_analysis()
@@ -464,7 +464,7 @@ class MainWindow(QMainWindow):
                 self.analysis.stop()
             except:
                 pass
-            for s in ('move_analyzed', 'progress_changed', 'analysis_complete', 'live_updated', 'analysis_error'):
+            for s in ('move_analyzed', 'progress_changed', 'analysis_complete', 'live_updated', 'analysis_error', 'engine_output'):
                 try:
                     getattr(self.analysis, s).disconnect()
                 except:
@@ -526,6 +526,7 @@ class MainWindow(QMainWindow):
             if self.quick_eval is None:
                 self.quick_eval = QuickEvaluator(ep, pr, movetime_ms=1500)
                 self.quick_eval.eval_ready.connect(self._on_quick_eval)
+                self.quick_eval.engine_output.connect(self._debug)
             else:
                 self.quick_eval.update_settings(ep, pr, movetime_ms=1500)
 
