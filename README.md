@@ -72,7 +72,7 @@ pip install pyinstaller
 pyinstaller deepsight.spec --clean --noconfirm
 ```
 
-Готовый `.exe` появится в папке `dist/`. PyInstaller-спецификация не встраивает движки; положите совместимые Windows UCI-движки рядом с приложением в `Engines/` или запустите `Engines/download-engines.bat`.
+Готовый `.exe` появится в папке `dist/`. PyInstaller-спецификация встраивает движки; положите совместимые Windows UCI-движки рядом с приложением в `Engines/` или запустите `Engines/download-engines.bat`. Если движков нету, при сборке через pyinstaller они скачаются автоматически.
 
 ---
 

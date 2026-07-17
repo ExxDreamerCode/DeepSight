@@ -2,11 +2,27 @@
 
 import os
 import sys
+import subprocess
 from pathlib import Path
 
 block_cipher = None
 
 ROOT_DIR = os.getcwd()
+
+engines_dir = os.path.join(ROOT_DIR, "Engines")
+download_script = os.path.join(engines_dir, "download-engines.bat")
+engine_exes = ["ember.exe", "stockfish-windows-x86-64.exe"]
+engines_missing = any(
+    not os.path.isfile(os.path.join(engines_dir, exe))
+    for exe in engine_exes
+)
+if engines_missing and os.path.isfile(download_script):
+    print("Engine files missing, running download-engines.bat...")
+    ret = subprocess.call(download_script, cwd=engines_dir, shell=True)
+    if ret != 0:
+        print("WARNING: download-engines.bat failed, engines may be missing in build")
+    else:
+        print("Engines downloaded successfully")
 
 piece_files = []
 pieces_dir = os.path.join(ROOT_DIR, "Images", "Pieces")
@@ -29,7 +45,15 @@ for fname in os.listdir(books_dir):
     if os.path.isfile(fpath):
         book_files.append((fpath, "Books"))
 
-all_datas = piece_files + move_icon_files + book_files
+engine_files = []
+engines_dir = os.path.join(ROOT_DIR, "Engines")
+if os.path.isdir(engines_dir):
+    for fname in os.listdir(engines_dir):
+        fpath = os.path.join(engines_dir, fname)
+        if os.path.isfile(fpath):
+            engine_files.append((fpath, "Engines"))
+
+all_datas = piece_files + move_icon_files + book_files + engine_files
 
 a = Analysis(
     ['main.py'],

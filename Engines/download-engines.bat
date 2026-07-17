@@ -26,4 +26,3 @@ echo.
 echo Files in current directory:
 dir *.exe
 echo.
-pause
