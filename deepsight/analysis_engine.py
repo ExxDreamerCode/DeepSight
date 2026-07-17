@@ -195,15 +195,16 @@ class AnalysisEngine(QObject):
                 board_before = self.game_state.get_position_at(idx - 1)
                 self.engine.set_position(board_before)
 
+                before_movetime = max(100, self.time_per_move // 2)
                 self.engine.start_analysis(
-                    movetime=self.time_per_move if not self.depth else None,
+                    movetime=before_movetime if not self.depth else None,
                     depth=self.depth
                 )
 
                 last_eval: Optional[MoveEval] = None
                 best_move: Optional[chess.Move] = None
                 start_time = time.time()
-                timeout = (self.time_per_move if not self.depth else 10000) / 1000.0 + 1.0
+                timeout = (before_movetime if not self.depth else 10000) / 1000.0 + 1.0
 
                 while not self._stop_event.is_set():
                     elapsed = time.time() - start_time
@@ -250,11 +251,12 @@ class AnalysisEngine(QObject):
                 board_after.push(move_data.move)
                 self.engine.set_position(board_after)
                 self.engine.get_output()
-                self.engine.start_analysis(movetime=1500)
+                after_movetime = max(100, self.time_per_move // 2)
+                self.engine.start_analysis(movetime=after_movetime)
 
                 after_eval = None
                 after_start = time.time()
-                after_timeout = 2.0
+                after_timeout = after_movetime / 1000.0 + 0.5
                 while not self._stop_event.is_set():
                     if time.time() - after_start > after_timeout:
                         break

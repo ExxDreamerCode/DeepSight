@@ -138,7 +138,7 @@ class InputPanel(QWidget):
         self.time_spin.setRange(0.1, 60.0)
         self.time_spin.setSingleStep(0.1)
         self.time_spin.setDecimals(1)
-        self.time_spin.setValue(0.3)
+        self.time_spin.setValue(1.0)
         self.time_spin.setSuffix(" sec")
         self.time_spin.setStyleSheet("background-color: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 4px; padding: 2px;")
         time_layout.addRow("Time/move:", self.time_spin)
