@@ -11,7 +11,6 @@ from .models.game_state import MoveEval
 
 
 class QuickEvaluator(QObject):
-
     eval_ready = pyqtSignal(object, object, object)
     engine_output = pyqtSignal(str)
 
@@ -67,7 +66,6 @@ class QuickEvaluator(QObject):
         self._start_time = time.time()
 
     def evaluate(self, board: chess.Board):
-
         if not self.ensure_started():
             return
 

@@ -14,7 +14,6 @@ class EngineProtocol(Enum):
     XBOARD = "xboard"
 
 class EngineManager:
-
     def __init__(self, engine_path: str, protocol: EngineProtocol = EngineProtocol.UCI):
         self.engine_path = engine_path
         self.protocol = protocol

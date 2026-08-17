@@ -32,7 +32,6 @@ PIECE_ORDER = {
 }
 
 class BoardWidget(QWidget):
-
     move_made = pyqtSignal(chess.Move)
     square_clicked = pyqtSignal(int)
 
@@ -78,7 +77,6 @@ class BoardWidget(QWidget):
                 print(f"Failed to load piece {filename}: {e}")
 
     def set_best_move_arrow(self, from_sq: Optional[int], to_sq: Optional[int]):
-
         self._arrow_from = from_sq
         self._arrow_to = to_sq
         self.update()
@@ -89,7 +87,6 @@ class BoardWidget(QWidget):
         self.update()
 
     def set_last_move(self, move: Optional[chess.Move]):
-
         if move:
             self._last_move_squares = [move.from_square, move.to_square]
         else:
@@ -97,12 +94,10 @@ class BoardWidget(QWidget):
         self.update()
 
     def flip_board(self):
-
         self.flipped = not self.flipped
         self.update()
 
     def square_coords(self, sq: int) -> Tuple[float, float]:
-
         file = chess.square_file(sq)
         rank = chess.square_rank(sq)
 
@@ -116,7 +111,6 @@ class BoardWidget(QWidget):
         return x, y
 
     def screen_to_square(self, x: float, y: float) -> Optional[int]:
-
         file = int(x / self._square_size)
         rank = int(y / self._square_size)
 
@@ -128,7 +122,6 @@ class BoardWidget(QWidget):
         return chess.square(file, 7 - rank)
 
     def paintEvent(self, event):
-
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(self.rect(), BOARD_BG)
@@ -416,7 +409,6 @@ class BoardWidget(QWidget):
         painter.drawEllipse(rect)
 
     def _draw_arrow(self, painter: QPainter, from_sq: int, to_sq: int):
-
         import math
 
         x1, y1 = self.square_coords(from_sq)
@@ -462,7 +454,6 @@ class BoardWidget(QWidget):
         painter.restore()
 
     def mousePressEvent(self, event):
-
         if self.game_state.board.is_game_over():
             return
 
@@ -485,7 +476,6 @@ class BoardWidget(QWidget):
                 ]
                 self.update()
         else:
-
             move = chess.Move(self._selected_square, sq)
 
             if move.from_square and move.to_square:
@@ -514,5 +504,4 @@ class BoardWidget(QWidget):
                     self._legal_moves.clear()
 
             self.update()
-
         self.square_clicked.emit(sq)

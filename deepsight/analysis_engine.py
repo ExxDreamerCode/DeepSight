@@ -19,7 +19,6 @@ class AnalysisMode(Enum):
 
 
 class AnalysisEngine(QObject):
-
     progress_changed = pyqtSignal(int, int)
     move_analyzed = pyqtSignal(object)
     live_updated = pyqtSignal(object, object, object)

@@ -161,6 +161,7 @@ class MainWindow(QMainWindow):
         self.board.move_made.connect(self._on_board_move)
         self.move_list.move_selected.connect(self._on_move_selected)
         self.move_list.navigation_requested.connect(self._on_navigation_requested)
+        self.move_list.branch_activated.connect(self._on_branch_activated)
         self.input_panel.analysis_stopped.connect(self._stop_quick_eval)
 
     def _on_navigation_requested(self, direction: str):
@@ -331,27 +332,9 @@ class MainWindow(QMainWindow):
 
         self._stop_quick_eval()
 
-        if self.game_state.current_move_index < len(self.game_state.moves) - 1:
-            del self.game_state.moves[self.game_state.current_move_index + 1:]
-            self.game_state.board = chess.Board()
-            self.game_state.board.set_fen(self.game_state._initial_fen)
-            for m in self.game_state.moves:
-                self.game_state.board.push(m.move)
-
-        player = self.game_state.board.turn
-        try:
-            san = self.game_state.board.san(move)
-        except:
-            san = move.uci()
-
-        am = AnalyzedMove(
-            move_number=len(self.game_state.moves) + 1,
-            move=move, san=san, player=player
-        )
-
-        self.game_state.moves.append(am)
-        self.game_state.board.push(move)
-        self.game_state.current_move_index = len(self.game_state.moves) - 1
+        am = self.game_state.make_move(move)
+        if am is None:
+            return
 
         self.board.set_last_move(move)
         self.board.clear_arrow()
@@ -413,6 +396,28 @@ class MainWindow(QMainWindow):
         
         self.game_state.go_to_move(idx)
         self._update_display_after_navigation(scroll_history=False)
+
+    def _on_branch_activated(self):
+        branches = self.game_state.branches
+        if not branches:
+            return
+
+        self._stop_quick_eval()
+        self.game_state.activate_branch(branches[-1])
+
+        self.board.update()
+        self.eval_bar.clear()
+        self.move_list.refresh(
+            select_index=self.game_state.current_move_index,
+            scroll=True
+        )
+        self.board.clear_arrow()
+        self._skip_live = True
+        cur = self.game_state.current_move
+        if cur:
+            self.status_label.setText(f"Variant: {cur.san}")
+
+        self._quick_evaluate()
 
     def _start_analysis(self, _):
         self._stop_analysis()

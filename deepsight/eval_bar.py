@@ -8,7 +8,6 @@ from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QFont, QLinearGradient
 import chess
 
 class EvalBar(QWidget):
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedWidth(52)
@@ -141,7 +140,6 @@ class EvalBar(QWidget):
         return ""
 
     def _round_top_rect(self, rect: QRectF, radius: float):
-
         from PyQt6.QtGui import QPainterPath
         path = QPainterPath()
         path.moveTo(rect.x(), rect.y() + radius)

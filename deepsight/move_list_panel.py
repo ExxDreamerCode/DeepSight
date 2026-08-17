@@ -12,7 +12,6 @@ import chess
 from .models.game_state import GameState, AnalyzedMove
 
 class MoveCell(QFrame):
-
     clicked = pyqtSignal(int)
 
     def __init__(self, move: Optional[AnalyzedMove], move_index: int, parent=None):
@@ -92,7 +91,6 @@ class MoveCell(QFrame):
             self.clicked.emit(self.move_index)
 
 class MoveRow(QFrame):
-
     cell_clicked = pyqtSignal(int)
 
     def __init__(self, move_number: int, white_move: Optional[AnalyzedMove] = None,
@@ -136,7 +134,6 @@ class MoveRow(QFrame):
         self.black_cell.set_selected(self.black_cell.move_index == move_index)
 
 class IconLabel(QLabel):
-
     _icons: Dict[str, QPixmap] = {}
 
     def __init__(self, classification: str, parent=None):
@@ -165,9 +162,9 @@ class IconLabel(QLabel):
                     cls._icons[name] = pixmap
 
 class MoveListPanel(QScrollArea):
-
     move_selected = pyqtSignal(int)
     navigation_requested = pyqtSignal(str)
+    branch_activated = pyqtSignal()
 
     def __init__(self, game_state: GameState, parent=None):
         super().__init__(parent)
@@ -175,13 +172,46 @@ class MoveListPanel(QScrollArea):
         self._rows: List[MoveRow] = []
         self._selected_index: int = -1
 
+        outer = QWidget(self)
+        outer_layout = QVBoxLayout(outer)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        header = QHBoxLayout()
+        header.setContentsMargins(4, 4, 4, 4)
+        header.setSpacing(4)
+
+        self.back_btn = QPushButton("◀ Вернуться к варианту")
+        self.back_btn.setToolTip("Вернуться к предыдущему варианту")
+        self.back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.back_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3a5a7a;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                padding: 4px 10px;
+                font-size: 10px;
+                font-weight: bold;
+            }
+            QPushButton:hover { background-color: #5a8aba; }
+        """)
+        self.back_btn.clicked.connect(self.branch_activated.emit)
+        self.back_btn.setVisible(False)
+        header.addWidget(self.back_btn)
+        header.addStretch()
+
+        outer_layout.addLayout(header)
+
         self.container = QWidget()
         self.layout = QVBoxLayout(self.container)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.layout.addStretch()
 
-        self.setWidget(self.container)
+        outer_layout.addWidget(self.container, 1)
+
+        self.setWidget(outer)
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setStyleSheet("""
@@ -222,7 +252,11 @@ class MoveListPanel(QScrollArea):
         for row in self._rows:
             if isinstance(row, MoveRow):
                 row.cell_clicked.connect(self._on_cell_clicked)
-                self.layout.insertWidget(self.layout.count() - 1, row)
+            self.layout.insertWidget(self.layout.count() - 1, row)
+
+    def _update_back_button(self):
+        has_branches = len(self.game_state.branches) > 0
+        self.back_btn.setVisible(has_branches)
 
     def _on_cell_clicked(self, move_index: int):
         if move_index < 0 or move_index >= len(self.game_state.moves):
@@ -270,6 +304,7 @@ class MoveListPanel(QScrollArea):
         scroll_pos = self.verticalScrollBar().value()
 
         self._build_list()
+        self._update_back_button()
 
         if 0 <= idx_to_select < len(self.game_state.moves):
             self.select_move(idx_to_select, emit_signal=emit_signal, scroll=scroll)
@@ -325,7 +360,6 @@ class MoveListPanel(QScrollArea):
                     break
 
     def keyPressEvent(self, event: QKeyEvent):
-
         if event.key() == Qt.Key.Key_Left:
             self.navigation_requested.emit("back")
             event.accept()
@@ -340,3 +374,5 @@ class MoveListPanel(QScrollArea):
             event.accept()
         else:
             super().keyPressEvent(event)
+
+        self._update_back_button()

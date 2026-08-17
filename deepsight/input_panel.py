@@ -17,7 +17,6 @@ from .models.game_state import GameState
 
 
 class InputPanel(QWidget):
-
     pgn_loaded = pyqtSignal(str)
     fen_loaded = pyqtSignal(str)
     analysis_started = pyqtSignal(str)

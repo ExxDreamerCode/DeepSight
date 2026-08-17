@@ -13,7 +13,6 @@ STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 @dataclass
 class MoveEval:
-
     move: chess.Move
     score_cp: Optional[float] = None
     mate: Optional[int] = None
@@ -40,7 +39,6 @@ class MoveEval:
 
 @dataclass
 class AnalyzedMove:
-
     move_number: int
     move: chess.Move
     san: str
@@ -59,11 +57,17 @@ class AnalyzedMove:
     is_book: bool = False
 
 
-class GameState:
+@dataclass
+class VariantBranch:
+    fork_index: int
+    moves: List[AnalyzedMove]
 
+
+class GameState:
     def __init__(self):
         self.board = chess.Board()
         self.moves: List[AnalyzedMove] = []
+        self.branches: List[VariantBranch] = []
         self.headers: Dict[str, str] = {}
         self.current_move_index: int = -1
         self.pgn_string: str = ""
@@ -73,6 +77,7 @@ class GameState:
         self._initial_fen = STARTING_FEN
         self.board = chess.Board()
         self.moves.clear()
+        self.branches.clear()
         self.headers.clear()
         self.current_move_index = -1
         self.pgn_string = ""
@@ -80,17 +85,17 @@ class GameState:
     def load_pgn(self, pgn_text: str) -> bool:
         try:
             self.clear()
-            
+
             lines = []
             for line in pgn_text.strip().split('\n'):
                 line = line.strip()
                 if line:
                     lines.append(line)
             clean_text = '\n'.join(lines)
-            
+
             pgn_io = io.StringIO(clean_text)
             game = chess.pgn.read_game(pgn_io)
-            
+
             if game is None:
                 pgn_io.seek(0)
                 games = []
@@ -99,11 +104,11 @@ class GameState:
                     if g is None:
                         break
                     games.append(g)
-                
+
                 if not games:
                     return False
                 game = games[0]
-            
+
             self.pgn_string = pgn_text
             self.headers = dict(game.headers.items())
 
@@ -115,12 +120,12 @@ class GameState:
                 self.board.set_fen(initial_fen)
             node = game
             move_number = 1
-            
+
             while node.variations:
                 node = node.variations[0]
                 move = node.move
                 player = self.board.turn
-                
+
                 try:
                     san = self.board.san(move)
                 except:
@@ -140,9 +145,9 @@ class GameState:
 
             self.board = chess.Board()
             self.current_move_index = -1
-            
+
             return True
-            
+
         except Exception as e:
             print(f"PGN parsing error: {e}")
             return False
@@ -163,7 +168,7 @@ class GameState:
         board.set_fen(self._initial_fen)
         if move_index < 0 or not self.moves:
             return board
-        
+
         for i in range(move_index + 1):
             if i < len(self.moves):
                 board.push(self.moves[i].move)
@@ -205,3 +210,52 @@ class GameState:
         if 0 <= self.current_move_index < len(self.moves):
             return self.moves[self.current_move_index]
         return None
+
+    def get_branches_for_index(self, move_index: int) -> List[VariantBranch]:
+        return [b for b in self.branches if b.fork_index == move_index]
+
+    def make_move(self, move: chess.Move) -> Optional[AnalyzedMove]:
+        if not self.board.is_legal(move):
+            return None
+
+        idx = self.current_move_index
+
+        for br in self.branches:
+            if br.fork_index == idx and br.moves and br.moves[0].move == move:
+                self.activate_branch(br)
+                return br.moves[0]
+
+        if idx < len(self.moves) - 1:
+            tail = self.moves[idx + 1:]
+            if tail and not any(
+                b.fork_index == idx and b.moves and b.moves[0].move == tail[0].move
+                for b in self.branches
+            ):
+                self.branches.append(VariantBranch(fork_index=idx, moves=list(tail)))
+            del self.moves[idx + 1:]
+
+        player = self.board.turn
+        try:
+            san = self.board.san(move)
+        except:
+            san = move.uci()
+
+        am = AnalyzedMove(
+            move_number=len(self.moves) + 1,
+            move=move, san=san, player=player
+        )
+
+        self.moves.append(am)
+        self.board.push(move)
+        self.current_move_index = len(self.moves) - 1
+        return am
+
+    def activate_branch(self, branch: VariantBranch):
+        idx = branch.fork_index
+        self.moves = self.moves[:idx + 1] + list(branch.moves)
+        try:
+            self.branches.remove(branch)
+        except ValueError:
+            pass
+
+        self.go_to_move(len(self.moves) - 1)
