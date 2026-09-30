@@ -1,45 +1,49 @@
 # DeepSight — Chess Analyzer
 
-**DeepSight** — это десктопное приложение для глубокого анализа шахматных партий с графическим интерфейсом. Позволяет загружать партии в формате PGN, задавать произвольные позиции через FEN, подключать UCI-совместимые шахматные движки и получать детальную оценку каждого хода.
+**DeepSight** is a desktop application for deep analysis of chess games, with a graphical interface. It loads games in PGN format, accepts any position as FEN, connects to UCI-compatible chess engines and returns a detailed score for every move.
+
+Russian version: [docs/README.ru.md](docs/README.ru.md).
 
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![PyQt6](https://img.shields.io/badge/PyQt6-6.5+-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
----
-
-## Возможности
-
-- **Загрузка партий** — импорт PGN-файлов или вставка текста PGN
-- **Произвольные позиции** — установка любой позиции через FEN
-- **Встроенные движки** — Ember и Stockfish поставляются Nix-сборками, но не хранятся в репозитории
-- **Поддержка внешних движков** — подключение любого UCI-совместимого движка
-- **Полный анализ партии** — автоматический анализ каждого хода с оценкой в центипешнях/мате
-- **Live-оценка** — быстрая оценка текущей позиции без запуска полного анализа
-- **Классификация ходов** — автоматическое определение книжных ходов, ошибок, зевков и т.д.
-- **Навигация по партии** — клавиши ← → для перехода по ходам, Home/End — в начало/конец
-- **Шкала оценки** — визуальная индикация перевеса (Eval Bar)
-- **Стрелка лучшего хода** — отображение рекомендуемого хода движка на доске
-- **Тёмная тема** — современный интерфейс в тёмных тонах
-- **Поддержка NNUE** — использование нейросетевых весов движка (если поддерживается)
+<img alt="DeepSight window: chessboard, evaluation bar and side panels" src="Images/screenshot.png" width="860">
 
 ---
 
-## Установка
+## Features
 
-### Требования
+- **Game loading** — import PGN files or paste PGN text
+- **Arbitrary positions** — set any position through FEN
+- **Built-in engines** — Ember and Stockfish come from the Nix build, but are not stored in the repository
+- **External engines** — connect any UCI-compatible engine
+- **Full game analysis** — every move analysed automatically and scored in centipawns or mate
+- **Live evaluation** — a fast score for the current position, without running a full analysis
+- **Move classification** — book moves, mistakes, blunders and the rest are recognised automatically
+- **Game navigation** — arrow keys step through the moves, Home/End jump to either end
+- **Evaluation bar** — a visual read on who is ahead
+- **Best-move arrow** — the engine's suggested move drawn on the board
+- **Dark theme** — the whole interface is dark
+- **NNUE support** — uses the engine's neural network weights where the engine supports them
+
+---
+
+## Installation
+
+### Requirements
 
 - Python 3.11+
-- Linux x86_64 для Nix-сборки текущей системы
+- Linux x86_64 for the Nix build of the current system
 
-### Зависимости
+### Dependencies
 
 ```
 PyQt6>=6.5
 python-chess>=1.999
 ```
 
-### Установка из исходного кода
+### Installing from source
 
 ```bash
 git clone https://github.com/ExxDreamerCode/DeepSight.git
@@ -49,103 +53,104 @@ Engines/download-engines.bat
 python main.py
 ```
 
-В исходном дереве движки не хранятся. Для запуска встроенных движков из исходников положите совместимые UCI-исполняемые файлы в `Engines/` или используйте Nix-сборку ниже. Либо запустите download-engines.bat который автоматически подгрузит оба нужных движка. 
+Engines are not kept in the source tree. To run the built-in engines from source, put compatible UCI executables into `Engines/`, or use the Nix build below. Otherwise run `download-engines.bat`, which fetches both required engines automatically.
 
-### Сборка через Nix для текущей системы
+### Building with Nix for the current system
 
 ```bash
 nix build .#
 ./result/bin/deepsight
 ```
 
-Эта сборка создает Nix derivation приложения и добавляет в него движки:
+This build produces a Nix derivation of the application and adds the engines to it:
 
-- Ember собирается из закрепленного исходного релиза `ExxDreamerCode/Ember`
-- Stockfish скачивается из закрепленного релиза `official-stockfish/Stockfish`
+- Ember is built from the pinned source release `ExxDreamerCode/Ember`
+- Stockfish is downloaded from the pinned `official-stockfish/Stockfish` release
 
-### Сборка Windows exe вручную
+### Building the Windows exe by hand
 
-Nix-сборка поддерживается только для Linux. Для Windows используйте PyInstaller вручную. Конфигурация находится в `deepsight.spec`.
+The Nix build is Linux-only. On Windows, use PyInstaller directly — the configuration lives in `deepsight.spec`.
 
 ```bash
 pip install pyinstaller
 pyinstaller deepsight.spec --clean --noconfirm
 ```
 
-Готовый `.exe` появится в папке `dist/`. PyInstaller-спецификация встраивает движки; положите совместимые Windows UCI-движки рядом с приложением в `Engines/` или запустите `Engines/download-engines.bat`. Если движков нету, при сборке через pyinstaller они скачаются автоматически.
+The finished `.exe` appears in `dist/`. The PyInstaller spec embeds the engines, so put compatible Windows UCI engines next to the application in `Engines/`, or run `Engines/download-engines.bat`. If the engines are missing, a PyInstaller build downloads them automatically.
 
 ---
 
-## Использование
+## Usage
 
-1. **Запуск приложения:**
+1. **Start the application:**
    ```bash
    python main.py
    ```
 
-2. **Загрузка партии:**
-   - Нажмите `File → Load PGN...` и выберите PGN-файл
-   - Или вставьте текст PGN в поле ввода на левой панели и нажмите "Load PGN"
+2. **Load a game:**
+   - Click `File → Load PGN...` and choose a PGN file
+   - Or paste PGN text into the field on the left panel and press "Load PGN"
 
-3. **Установка произвольной позиции:**
-   - Введите FEN в соответствующее поле и нажмите "Set FEN"
+3. **Set an arbitrary position:**
+   - Enter a FEN into the matching field and press "Set FEN"
 
-4. **Анализ:**
-   - Выберите движок (Ember, Stockfish или внешний)
-   - Настройте время на ход и глубину анализа
-   - Нажмите "Start Analysis"
-   - Прогресс отображается в строке состояния
+4. **Analysis:**
+   - Choose an engine (Ember, Stockfish or an external one)
+   - Set the time per move and the analysis depth
+   - Press "Start Analysis"
+   - Progress is shown in the status bar
 
-5. **Навигация:**
-   - ← / → — переход по ходам
-   - Home / End — в начало / конец партии
-   - Клик по ходу в списке — переход к выбранному ходу
+5. **Navigation:**
+   - ← / → — step through the moves
+   - Home / End — jump to the start or the end of the game
+   - Click a move in the list to jump to it
 
-6. **Быстрая оценка:**
-   - Автоматически выполняется при загрузке партии или переходе к ходу
-   - Отображается на шкале оценки и в строке состояния
+6. **Quick evaluation:**
+   - Runs automatically when a game is loaded or a move is selected
+   - Shown on the evaluation bar and in the status bar
 
 ---
 
-## Встроенные движки
+## Built-in engines
 
-| Движок | Linux Nix-сборка | Windows вручную | Протокол |
+| Engine | Linux Nix build | Windows, by hand | Protocol |
 |--------|-------------------|----------------|----------|
 | **Ember** | `Engines/ember` | `Engines/ember.exe` | UCI |
 | **Stockfish** | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe` | UCI |
 
-Движки не коммитятся в репозиторий. Linux Nix-сборка скачивает или собирает их как часть derivation. Для Windows положите совместимые `.exe` движки в `Engines/` рядом с приложением или запустите `Engines/download-engines.bat`.
+Engines are not committed to the repository. The Linux Nix build downloads or builds them as part of the derivation. On Windows, put compatible `.exe` engines into `Engines/` next to the application, or run `Engines/download-engines.bat`.
 
 ---
 
-## Клавиатурные сокращения
+## Keyboard shortcuts
 
-| Клавиша | Действие |
+| Key | Action |
 |---------|----------|
-| ← | Предыдущий ход |
-| → | Следующий ход |
-| Home | В начало партии |
-| End | В конец партии |
+| ← | Previous move |
+| → | Next move |
+| Home | Start of the game |
+| End | End of the game |
 
 ---
 
-## Разработка
+## Development
 
-### Запуск в режиме отладки
+### Running in debug mode
 
-В меню `Debug` доступны:
-- **Show Engine Output** — окно с сырым выводом движка
-- **Test Engine Direct** — прямая проверка подключения к движку
+The `Debug` menu offers:
 
-### Добавление нового движка
+- **Show Engine Output** — a window with the engine's raw output
+- **Test Engine Direct** — a direct check of the engine connection
 
-1. Добавьте источник движка в `flake.nix`
-2. Установите исполняемый файл в папку `Engines/` внутри Linux Nix-сборки
-3. Добавьте запись в `BUILTIN_ENGINES` в `engine_registry.py`
-4. При необходимости укажите протокол в `get_engine_protocol()`
+### Adding a new engine
+
+1. Add the engine source to `flake.nix`
+2. Install the executable into `Engines/` inside the Linux Nix build
+3. Add an entry to `BUILTIN_ENGINES` in `engine_registry.py`
+4. Set the protocol in `get_engine_protocol()` if needed
 
 ---
 
-## Лицензия
+## License
 
-Проект распространяется под лицензией MIT. Подробнее — в файле [LICENSE](LICENSE).
+This project is distributed under the MIT license. See [LICENSE](LICENSE) for details.

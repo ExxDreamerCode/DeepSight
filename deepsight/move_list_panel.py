@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from typing import Optional, Dict, List
 from pathlib import Path
 
@@ -181,8 +181,8 @@ class MoveListPanel(QScrollArea):
         header.setContentsMargins(4, 4, 4, 4)
         header.setSpacing(4)
 
-        self.back_btn = QPushButton("◀ Вернуться к варианту")
-        self.back_btn.setToolTip("Вернуться к предыдущему варианту")
+        self.back_btn = QPushButton("◀ Back to variation")
+        self.back_btn.setToolTip("Return to the previous variation")
         self.back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.back_btn.setStyleSheet("""
             QPushButton {
