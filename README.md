@@ -151,6 +151,13 @@ The `Debug` menu offers:
 
 ---
 
+## Contributors
+
+- [ExxDreamerCode](https://github.com/ExxDreamerCode)
+- [Boris Nagaev (@starius)](https://github.com/starius)
+
+---
+
 ## License
 
 This project is distributed under the MIT license. See [LICENSE](LICENSE) for details.
