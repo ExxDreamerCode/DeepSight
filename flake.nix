@@ -63,7 +63,7 @@
             ''
               mkdir -p "$out/Engines"
               tar -xf ${emberLinux}
-              cp ${emberAsset}/ember "$out/Engines/ember"
+              cp ${emberAsset}/ember "$out/Engines/ember-${emberVersion}"
               tar -xf ${stockfishLinux}
               cp stockfish/stockfish-ubuntu-x86-64 "$out/Engines/stockfish"
               chmod 0755 "$out"/Engines/*

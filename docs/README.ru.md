@@ -115,10 +115,10 @@ pyinstaller deepsight.spec --clean --noconfirm
 
 | Движок | Linux Nix-сборка | Windows вручную | Протокол | Лицензия |
 |--------|-------------------|----------------|----------|----------|
-| **Ember** | `Engines/ember` | `Engines/ember.exe` | UCI | MIT (наш) |
+| **Ember** | `Engines/ember-1.3.1` | `Engines/ember-1.3.1.exe` | UCI | MIT (наш) |
 | **Stockfish** | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe` | UCI | GPL-3.0-or-later — см. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 
-Движки не коммитятся в репозиторий. Linux Nix-сборка скачивает или собирает их как часть derivation. Для Windows положите совместимые `.exe` движки в `Engines/` рядом с приложением или запустите `Engines/download-engines.bat`.
+Движки не коммитятся в репозиторий. Linux Nix-сборка скачивает или собирает их как часть derivation. Для Windows положите совместимые `.exe` движки в `Engines/` рядом с приложением или запустите `Engines/download-engines.bat`. Оба движка названы по версии, из которой они взяты, поэтому по папке видно, какая версия установлена; имена без версии (`ember.exe`, `ember`) тоже принимаются.
 
 ---
 

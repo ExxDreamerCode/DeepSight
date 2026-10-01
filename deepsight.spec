@@ -11,11 +11,20 @@ ROOT_DIR = os.getcwd()
 
 engines_dir = os.path.join(ROOT_DIR, "Engines")
 download_script = os.path.join(engines_dir, "download-engines.bat")
-engine_exes = ["ember.exe", "stockfish-windows-x86-64.exe"]
-engines_missing = any(
-    not os.path.isfile(os.path.join(engines_dir, exe))
-    for exe in engine_exes
-)
+
+
+def engine_present(prefix):
+    """The engines are installed as ember-<version>.exe, so match the prefix instead of a fixed
+    name that would have to be bumped along with the version."""
+    if not os.path.isdir(engines_dir):
+        return False
+    return any(
+        fname.lower().startswith(prefix) and fname.lower().endswith(".exe")
+        for fname in os.listdir(engines_dir)
+    )
+
+
+engines_missing = not (engine_present("ember") and engine_present("stockfish"))
 if engines_missing and os.path.isfile(download_script):
     print("Engine files missing, running download-engines.bat...")
     ret = subprocess.call(download_script, cwd=engines_dir, shell=True)

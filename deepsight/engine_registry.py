@@ -11,24 +11,35 @@ from pathlib import Path
 from .engine_manager import EngineProtocol
 
 
+# Versions of the engines the builds ship. Bumping one means bumping the pins in
+# Engines/download-engines.bat and flake.nix, the file names in both READMEs and
+# THIRD_PARTY_NOTICES.md.
+BUILTIN_ENGINE_VERSIONS: Dict[str, str] = {
+    "ember": "1.3.1",
+    "stockfish": "18",
+}
+
+
+def _with_version(path: str, version: str) -> str:
+    stem, dot, ext = path.partition(".")
+    return f"{stem}-{version}{dot}{ext}"
+
+
+_EMBER_FILES = ("Engines/ember.exe", "Engines/Ember.exe", "Engines/ember")
+
+# The engines are installed under the version they were built from, so Engines/ shows which one is
+# there - but the bare names still come first in the fallback list, so an engine dropped into the
+# folder by hand keeps resolving.
 BUILTIN_ENGINES: Dict[str, Tuple[str, ...]] = {
-    "Ember": (
-        "Engines/ember.exe",
-        "Engines/Ember.exe",
-        "Engines/ember",
+    "Ember": tuple(
+        [_with_version(name, BUILTIN_ENGINE_VERSIONS["ember"]) for name in _EMBER_FILES]
+        + list(_EMBER_FILES)
     ),
     "Stockfish": (
         "Engines/stockfish-windows-x86-64.exe",
         "Engines/stockfish.exe",
         "Engines/stockfish",
     ),
-}
-
-# Versions of the engines the builds ship. Bumping one means bumping the pins in
-# Engines/download-engines.bat and flake.nix together with this line and THIRD_PARTY_NOTICES.md.
-BUILTIN_ENGINE_VERSIONS: Dict[str, str] = {
-    "ember": "1.3.1",
-    "stockfish": "18",
 }
 
 _temp_dir: Optional[str] = None

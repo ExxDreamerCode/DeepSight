@@ -115,10 +115,10 @@ The finished `.exe` appears in `dist/`. The PyInstaller spec embeds the engines,
 
 | Engine | Linux Nix build | Windows, by hand | Protocol | License |
 |--------|-------------------|----------------|----------|---------|
-| **Ember** | `Engines/ember` | `Engines/ember.exe` | UCI | MIT (ours) |
+| **Ember** | `Engines/ember-1.3.1` | `Engines/ember-1.3.1.exe` | UCI | MIT (ours) |
 | **Stockfish** | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe` | UCI | GPL-3.0-or-later - see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 
-Engines are not committed to the repository. The Linux Nix build downloads or builds them as part of the derivation. On Windows, put compatible `.exe` engines into `Engines/` next to the application, or run `Engines/download-engines.bat`.
+Engines are not committed to the repository. The Linux Nix build downloads or builds them as part of the derivation. On Windows, put compatible `.exe` engines into `Engines/` next to the application, or run `Engines/download-engines.bat`. Both engines are named after the version they come from, so the folder says which one you have; a plain `ember.exe` or `ember` is accepted as well.
 
 ---
 

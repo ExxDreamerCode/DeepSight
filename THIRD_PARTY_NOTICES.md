@@ -24,6 +24,7 @@ together.
 - **Version:** 1.3.1 (revision `9e015493`), the same on both platforms: Windows takes
   `ember-1.3.1-9e015493-windows-amd64.zip` in `Engines/download-engines.bat`, Linux takes
   `ember-1.3.1-9e015493-linux-amd64.tar.gz` in `flake.nix`
+- **Installed as:** `Engines/ember-1.3.1.exe` on Windows, `Engines/ember-1.3.1` on Linux
 - **Release the binaries come from:** https://github.com/ExxDreamerCode/Ember/releases/tag/V1.3.1
 - **Source:** https://github.com/ExxDreamerCode/Ember
 - **License:** MIT - full text in [LICENSE](LICENSE)
