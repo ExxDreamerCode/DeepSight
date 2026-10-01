@@ -13,6 +13,8 @@ if errorlevel 1 (
 echo Ember downloaded successfully!
 
 echo.
+REM The Stockfish build fetched below is GPL-3.0-or-later: if you change the version, update
+REM THIRD_PARTY_NOTICES.md. The license text travels with the build (licenses/GPL-3.0.txt).
 echo Downloading Stockfish...
 powershell -Command "$stockfishZip = Join-Path $env:TEMP 'stockfish.zip'; $targetDir = 'D:\DeepSight\Engines'; Invoke-WebRequest -Uri 'https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-windows-x86-64.zip' -OutFile $stockfishZip -UseBasicParsing; Expand-Archive -LiteralPath $stockfishZip -DestinationPath $env:TEMP -Force; Copy-Item (Join-Path $env:TEMP 'stockfish\stockfish-windows-x86-64.exe') (Join-Path $targetDir 'stockfish-windows-x86-64.exe') -Force; Remove-Item $stockfishZip -Force; Remove-Item (Join-Path $env:TEMP 'stockfish') -Recurse -Force"
 if errorlevel 1 (

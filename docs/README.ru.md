@@ -113,10 +113,10 @@ pyinstaller deepsight.spec --clean --noconfirm
 
 ## Встроенные движки
 
-| Движок | Linux Nix-сборка | Windows вручную | Протокол |
-|--------|-------------------|----------------|----------|
-| **Ember** | `Engines/ember` | `Engines/ember.exe` | UCI |
-| **Stockfish** | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe` | UCI |
+| Движок | Linux Nix-сборка | Windows вручную | Протокол | Лицензия |
+|--------|-------------------|----------------|----------|----------|
+| **Ember** | `Engines/ember` | `Engines/ember.exe` | UCI | MIT (наш) |
+| **Stockfish** | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe` | UCI | GPL-3.0-or-later — см. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 
 Движки не коммитятся в репозиторий. Linux Nix-сборка скачивает или собирает их как часть derivation. Для Windows положите совместимые `.exe` движки в `Engines/` рядом с приложением или запустите `Engines/download-engines.bat`.
 
@@ -160,4 +160,6 @@ pyinstaller deepsight.spec --clean --noconfirm
 
 ## Лицензия
 
-Проект распространяется под лицензией MIT. Подробнее — в файле [LICENSE](LICENSE).
+Собственный код DeepSight распространяется под лицензией MIT. Подробнее — в файле [LICENSE](LICENSE).
+
+На встроенные движки она не распространяется: Ember — наш и тоже MIT; Stockfish 18 — GPL-3.0-or-later. Оба являются отдельными программами, запускаются своими процессами и общаются по UCI, поэтому каждый сохраняет свою лицензию — см. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

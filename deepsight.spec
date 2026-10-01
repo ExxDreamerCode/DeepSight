@@ -55,6 +55,19 @@ if os.path.isdir(engines_dir):
 
 all_datas = piece_files + move_icon_files + book_files + engine_files
 
+# Stockfish is GPL-3.0, so its license text and the notices have to travel with the build and not
+# only live in the repository. A missing notice fails the build on purpose - a build without them
+# would be shipping a GPL binary with no license. See THIRD_PARTY_NOTICES.md.
+notice_files = [
+    (os.path.join(ROOT_DIR, "THIRD_PARTY_NOTICES.md"), "."),
+    (os.path.join(ROOT_DIR, "licenses", "GPL-3.0.txt"), "licenses"),
+]
+missing_notices = [path for path, _ in notice_files if not os.path.isfile(path)]
+if missing_notices:
+    raise SystemExit("Missing license notices: " + ", ".join(missing_notices))
+
+all_datas = all_datas + notice_files
+
 a = Analysis(
     ['main.py'],
     pathex=[ROOT_DIR],

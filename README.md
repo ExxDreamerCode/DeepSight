@@ -113,10 +113,10 @@ The finished `.exe` appears in `dist/`. The PyInstaller spec embeds the engines,
 
 ## Built-in engines
 
-| Engine | Linux Nix build | Windows, by hand | Protocol |
-|--------|-------------------|----------------|----------|
-| **Ember** | `Engines/ember` | `Engines/ember.exe` | UCI |
-| **Stockfish** | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe` | UCI |
+| Engine | Linux Nix build | Windows, by hand | Protocol | License |
+|--------|-------------------|----------------|----------|---------|
+| **Ember** | `Engines/ember` | `Engines/ember.exe` | UCI | MIT (ours) |
+| **Stockfish** | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe` | UCI | GPL-3.0-or-later - see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 
 Engines are not committed to the repository. The Linux Nix build downloads or builds them as part of the derivation. On Windows, put compatible `.exe` engines into `Engines/` next to the application, or run `Engines/download-engines.bat`.
 
@@ -160,4 +160,6 @@ The `Debug` menu offers:
 
 ## License
 
-This project is distributed under the MIT license. See [LICENSE](LICENSE) for details.
+DeepSight's own code is distributed under the MIT license. See [LICENSE](LICENSE) for details.
+
+That license covers this application and not the engines shipped with it. Ember is ours and MIT as well; Stockfish 18 is GPL-3.0-or-later. Both are separate programs, started as their own processes and spoken to over UCI, so each keeps its own license - see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

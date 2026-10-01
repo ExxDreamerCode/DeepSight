@@ -33,6 +33,7 @@
                 || lib.hasPrefix "result-" relPath);
           };
 
+          # Bumping either pin means updating THIRD_PARTY_NOTICES.md.
           emberVersion = "1.1.2";
           stockfishRelease = "sf_18";
 
@@ -89,7 +90,7 @@
               runHook preInstall
 
               mkdir -p "$out/bin" "$out/share/deepsight"
-              cp -R main.py deepsight Images Books LICENSE README.md "$out/share/deepsight/"
+              cp -R main.py deepsight Images Books LICENSE README.md THIRD_PARTY_NOTICES.md licenses "$out/share/deepsight/"
               cp -R ${nativeEngines}/Engines "$out/share/deepsight/"
 
               makeWrapper ${pythonEnv}/bin/python "$out/bin/deepsight" \
