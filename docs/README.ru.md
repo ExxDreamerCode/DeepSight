@@ -8,6 +8,8 @@ English version: [../README.md](../README.md).
 ![PyQt6](https://img.shields.io/badge/PyQt6-6.5+-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
+<img alt="Окно DeepSight: доска, шкала оценки и боковые панели" src="../Images/screenshot.png" width="860">
+
 ---
 
 ## Возможности
@@ -136,6 +138,7 @@ pyinstaller deepsight.spec --clean --noconfirm
 ### Запуск в режиме отладки
 
 В меню `Debug` доступны:
+
 - **Show Engine Output** — окно с сырым выводом движка
 - **Test Engine Direct** — прямая проверка подключения к движку
 
@@ -145,6 +148,13 @@ pyinstaller deepsight.spec --clean --noconfirm
 2. Установите исполняемый файл в папку `Engines/` внутри Linux Nix-сборки
 3. Добавьте запись в `BUILTIN_ENGINES` в `engine_registry.py`
 4. При необходимости укажите протокол в `get_engine_protocol()`
+
+---
+
+## Авторы
+
+- [ExxDreamerCode](https://github.com/ExxDreamerCode)
+- [Boris Nagaev (@starius)](https://github.com/starius)
 
 ---
 
