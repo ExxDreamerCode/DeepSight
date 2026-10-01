@@ -2,7 +2,7 @@
 
 DeepSight's own code is distributed under the MIT license (see [LICENSE](LICENSE)). The builds
 published from this repository additionally contain the third-party components below - two chess
-engines and one Python library - each of which keeps its own license.
+engines and two Python libraries - each of which keeps its own license.
 
 ## Stockfish
 
@@ -39,8 +39,19 @@ together.
 - **Copyright:** Niklas Fiekas and the python-chess contributors
 - **Used for:** PGN and FEN handling, move generation and the board model
 
-Unlike the engines, python-chess is imported as a library rather than run as a separate process, so
-it is part of the application itself and its license travels with any build that bundles it.
+## PyQt6
+
+- **Version:** PyQt6 6.11, with the Qt 6.11 libraries it bundles as `PyQt6-Qt6`
+- **Source:** https://www.riverbankcomputing.com/software/pyqt/
+- **License:** dual-licensed under the GNU GPL version 3 and the Riverbank Commercial License -
+  Riverbank states that PyQt, unlike Qt, is not available under the LGPL. The `PyQt6` wheel
+  declares `GPL-3.0-only`, and the Qt libraries in the `PyQt6-Qt6` wheel declare LGPL-3.0. The
+  GPL text is in [licenses/GPL-3.0.txt](licenses/GPL-3.0.txt)
+- **Copyright:** Riverbank Computing Limited for PyQt6, the Qt Company for the Qt libraries
+- **Used for:** the interface - windows, panels, dialogs and painting
+
+Unlike the engines, the two Python libraries are imported rather than run as separate processes, so
+they are part of the application itself and their licenses travel with any build that bundles them.
 
 ## Notes for distributors
 
