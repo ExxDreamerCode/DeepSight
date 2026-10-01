@@ -21,8 +21,10 @@ together.
 
 ## Ember
 
-- **Version:** 1.1.2 on Linux (built from the revision pinned in `flake.nix`), 1.3.0 on Windows
-  (from the release `V1.3.0`, fetched by `Engines/download-engines.bat`)
+- **Version:** 1.3.1 (revision `9e015493`), the same on both platforms: Windows takes
+  `ember-1.3.1-9e015493-windows-amd64.zip` in `Engines/download-engines.bat`, Linux takes
+  `ember-1.3.1-9e015493-linux-amd64.tar.gz` in `flake.nix`
+- **Release the binaries come from:** https://github.com/ExxDreamerCode/Ember/releases/tag/V1.3.1
 - **Source:** https://github.com/ExxDreamerCode/Ember
 - **License:** MIT - full text in [LICENSE](LICENSE)
 - **Copyright:** D.r.e.A.m.e.R and the Ember contributors

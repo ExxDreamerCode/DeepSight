@@ -64,7 +64,7 @@ nix build .#
 
 This build produces a Nix derivation of the application and adds the engines to it:
 
-- Ember is built from the pinned source release `ExxDreamerCode/Ember`
+- Ember is downloaded from the pinned `ExxDreamerCode/Ember` release
 - Stockfish is downloaded from the pinned `official-stockfish/Stockfish` release
 
 ### Building the Windows exe by hand

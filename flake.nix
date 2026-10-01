@@ -33,8 +33,10 @@
                 || lib.hasPrefix "result-" relPath);
           };
 
-          # Bumping either pin means updating THIRD_PARTY_NOTICES.md.
-          emberVersion = "1.1.2";
+          # Bumping any of these pins means updating THIRD_PARTY_NOTICES.md.
+          emberVersion = "1.3.1";
+          emberRev = "9e015493";
+          emberAsset = "ember-${emberVersion}-${emberRev}-linux-amd64";
           stockfishRelease = "sf_18";
 
           pythonEnv = pkgs.python3.withPackages (ps: [
@@ -47,19 +49,11 @@
             hash = "sha256-XG84sCpNpfP/52PyfabD50Puvv2StQyzZhYjuWaWrf8=";
           };
 
-          emberNative = pkgs.rustPlatform.buildRustPackage {
-            pname = "ember";
-            version = emberVersion;
-
-            src = pkgs.fetchFromGitHub {
-              owner = "ExxDreamerCode";
-              repo = "Ember";
-              rev = "bd752d9ed530d3162e32b1c13a8ad9fc779f31b4";
-              hash = "sha256-7SsrMXXAG2QAJNaq5zi5P6jAtuU5GzffToJOVPv7PsQ=";
-            };
-
-            cargoHash = "sha256-cacnWEtZZIjr3cpwFbNx8kj7hTqO4yc4FgXfn/6rEVs=";
-            doCheck = false;
+          # Like Stockfish, Ember comes from its own release rather than being built here, so the
+          # version, the revision in the asset name and the hash are the only things to bump.
+          emberLinux = pkgs.fetchurl {
+            url = "https://github.com/ExxDreamerCode/Ember/releases/download/V${emberVersion}/${emberAsset}.tar.gz";
+            hash = "sha256-fFcTGVTkcrGVvr6pKP+uAq8i/pZsa6IH247HomPdjdE=";
           };
 
           nativeEngines = pkgs.runCommand "deepsight-engines-${version}"
@@ -68,7 +62,8 @@
             }
             ''
               mkdir -p "$out/Engines"
-              cp ${emberNative}/bin/ember "$out/Engines/ember"
+              tar -xf ${emberLinux}
+              cp ${emberAsset}/ember "$out/Engines/ember"
               tar -xf ${stockfishLinux}
               cp stockfish/stockfish-ubuntu-x86-64 "$out/Engines/stockfish"
               chmod 0755 "$out"/Engines/*

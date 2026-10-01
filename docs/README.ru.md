@@ -64,7 +64,7 @@ nix build .#
 
 Эта сборка создает Nix derivation приложения и добавляет в него движки:
 
-- Ember собирается из закрепленного исходного релиза `ExxDreamerCode/Ember`
+- Ember скачивается из закрепленного релиза `ExxDreamerCode/Ember`
 - Stockfish скачивается из закрепленного релиза `official-stockfish/Stockfish`
 
 ### Сборка Windows exe вручную
