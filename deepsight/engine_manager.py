@@ -58,6 +58,7 @@ class EngineManager:
             if self.protocol == EngineProtocol.UCI:
                 self._send("uci")
                 self._wait_for("uciok", timeout=5.0)
+                self._parse_engine_id()
                 self._parse_uci_options()
 
                 self._send_option_if_supported("book", "")
@@ -155,6 +156,16 @@ class EngineManager:
         self._use_nnue = enabled
         if self.protocol == EngineProtocol.UCI and self._ready:
             self._apply_nnue_option()
+
+    def _parse_engine_id(self):
+        with self._lock:
+            lines = list(self.stdout_buffer)
+
+        for line in lines:
+            m = re.match(r'^id\s+name\s+(.+)$', line, re.IGNORECASE)
+            if m:
+                self._name = m.group(1).strip()
+                return
 
     def _parse_uci_options(self):
         with self._lock:

@@ -1,4 +1,4 @@
-﻿from typing import Optional
+from typing import Optional
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
                              QStatusBar, QLabel, QProgressBar,
@@ -285,6 +285,7 @@ class MainWindow(QMainWindow):
         self._debug(f"Engine start: {ok}")
         if not ok:
             return
+        self._debug(f"Engine reports: {eng.name}")
         eng.set_position_from_moves([])
         eng.start_analysis(movetime=2000)
         import time

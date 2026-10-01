@@ -24,6 +24,13 @@ BUILTIN_ENGINES: Dict[str, Tuple[str, ...]] = {
     ),
 }
 
+# Versions of the engines the builds ship. Bumping one means bumping the pins in
+# Engines/download-engines.bat and flake.nix together with this line and THIRD_PARTY_NOTICES.md.
+BUILTIN_ENGINE_VERSIONS: Dict[str, str] = {
+    "ember": "1.3.1",
+    "stockfish": "18",
+}
+
 _temp_dir: Optional[str] = None
 _extracted: Dict[str, str] = {}
 
@@ -133,10 +140,22 @@ def list_engine_types() -> list:
     return engines
 
 
-def get_engine_display_name(engine_type: str) -> str:
+def get_engine_short_name(engine_type: str) -> str:
+    engine_type = engine_type.lower()
     names = {
-        "ember": "Ember (built-in)",
-        "stockfish": "Stockfish (built-in)",
-        "external": "External engine...",
+        "ember": "Ember",
+        "stockfish": "Stockfish",
+        "external": "External engine",
     }
-    return names.get(engine_type, engine_type)
+    name = names.get(engine_type, engine_type)
+    version = BUILTIN_ENGINE_VERSIONS.get(engine_type)
+    return f"{name} {version}" if version else name
+
+
+def get_engine_display_name(engine_type: str) -> str:
+    engine_type = engine_type.lower()
+    if engine_type == "external":
+        return "External engine..."
+    if engine_type in BUILTIN_ENGINE_VERSIONS:
+        return f"{get_engine_short_name(engine_type)} (built-in)"
+    return engine_type

@@ -12,7 +12,7 @@ from PyQt6.QtGui import QFont
 import chess
 
 from .engine_manager import EngineProtocol
-from .engine_registry import list_engine_types, get_engine_display_name
+from .engine_registry import list_engine_types, get_engine_display_name, get_engine_short_name
 from .models.game_state import GameState
 
 
@@ -46,9 +46,8 @@ class InputPanel(QWidget):
         type_row = QHBoxLayout()
         type_row.addWidget(QLabel("Engine:"))
         self.engine_type_combo = QComboBox()
-        self.engine_type_combo.addItem("Ember (built-in)", "ember")
-        self.engine_type_combo.addItem("Stockfish (built-in)", "stockfish")
-        self.engine_type_combo.addItem("External engine...", "external")
+        for engine_type in list_engine_types():
+            self.engine_type_combo.addItem(get_engine_display_name(engine_type), engine_type)
         self.engine_type_combo.currentIndexChanged.connect(self._on_engine_type_changed)
         type_row.addWidget(self.engine_type_combo, 1)
         engine_layout.addLayout(type_row)
@@ -222,16 +221,12 @@ class InputPanel(QWidget):
     def _update_engine_status(self):
         from .engine_registry import get_engine_path as resolve_engine_path
 
-        if self._engine_type == "ember":
-            if resolve_engine_path("ember"):
-                self.engine_status_label.setText("Ember engine ready")
+        if self._engine_type in ("ember", "stockfish"):
+            name = get_engine_short_name(self._engine_type)
+            if resolve_engine_path(self._engine_type):
+                self.engine_status_label.setText(f"{name} ready")
             else:
-                self.engine_status_label.setText("Ember engine missing")
-        elif self._engine_type == "stockfish":
-            if resolve_engine_path("stockfish"):
-                self.engine_status_label.setText("Stockfish engine ready")
-            else:
-                self.engine_status_label.setText("Stockfish engine missing")
+                self.engine_status_label.setText(f"{name} missing")
         elif self._engine_type == "external":
             if self._external_engine_path:
                 name = Path(self._external_engine_path).name
