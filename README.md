@@ -163,3 +163,5 @@ The `Debug` menu offers:
 DeepSight's own code is distributed under the MIT license. See [LICENSE](LICENSE) for details.
 
 That license covers this application and not the engines shipped with it. Ember is ours and MIT as well; Stockfish 18 is GPL-3.0-or-later. Both are separate programs, started as their own processes and spoken to over UCI, so each keeps its own license - see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+The Python dependency is third-party too: [python-chess](https://github.com/niklasf/python-chess) is GPL-3.0-or-later and keeps its own license.

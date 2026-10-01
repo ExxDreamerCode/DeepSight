@@ -1,8 +1,8 @@
 # Third-party notices
 
 DeepSight's own code is distributed under the MIT license (see [LICENSE](LICENSE)). The builds
-published from this repository additionally contain the two chess engines below, each of which
-keeps its own license.
+published from this repository additionally contain the third-party components below - two chess
+engines and one Python library - each of which keeps its own license.
 
 ## Stockfish
 
@@ -29,6 +29,18 @@ together.
 - **Source:** https://github.com/ExxDreamerCode/Ember
 - **License:** MIT - full text in [LICENSE](LICENSE)
 - **Copyright:** D.r.e.A.m.e.R and the Ember contributors
+
+## python-chess
+
+- **Package:** `python-chess` in `requirements.txt`; the same library is published on PyPI as
+  `chess` (1.11.x) and as `python-chess` (1.999), both by the same author
+- **Source:** https://github.com/niklasf/python-chess
+- **License:** GPL-3.0-or-later - full text in [licenses/GPL-3.0.txt](licenses/GPL-3.0.txt)
+- **Copyright:** Niklas Fiekas and the python-chess contributors
+- **Used for:** PGN and FEN handling, move generation and the board model
+
+Unlike the engines, python-chess is imported as a library rather than run as a separate process, so
+it is part of the application itself and its license travels with any build that bundles it.
 
 ## Notes for distributors
 

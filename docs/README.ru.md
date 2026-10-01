@@ -163,3 +163,5 @@ pyinstaller deepsight.spec --clean --noconfirm
 Собственный код DeepSight распространяется под лицензией MIT. Подробнее — в файле [LICENSE](LICENSE).
 
 На встроенные движки она не распространяется: Ember — наш и тоже MIT; Stockfish 18 — GPL-3.0-or-later. Оба являются отдельными программами, запускаются своими процессами и общаются по UCI, поэтому каждый сохраняет свою лицензию — см. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Python-зависимость тоже сторонняя: [python-chess](https://github.com/niklasf/python-chess) — GPL-3.0-or-later, и сохраняет свою лицензию.
