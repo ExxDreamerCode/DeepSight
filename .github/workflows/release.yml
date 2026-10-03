@@ -1,0 +1,194 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+      prerelease: ${{ steps.read.outputs.prerelease }}
+      publish: ${{ steps.read.outputs.publish }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag against the version in the code
+        id: read
+        run: |
+          version=$(python3 -c "import deepsight; print(deepsight.__version__)")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          case "$version" in
+            *-*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            if [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+              echo "tag $GITHUB_REF_NAME does not match version $version in deepsight/__init__.py" >&2
+              exit 1
+            fi
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "releasing $version from $GITHUB_REF_NAME"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "building $version without publishing, this is not a tag"
+          fi
+
+  checks:
+    name: Checks
+    needs: version
+    uses: ./.github/workflows/ci.yml
+
+  targets:
+    name: Targets
+    needs: version
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.read.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the build targets from engines.json
+        id: read
+        run: |
+          matrix=$(python3 -c "import json; print(json.dumps({'include': [{'target': t['id'], 'runner': t['runner']} for t in json.load(open('engines.json'))['targets']]}))")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "$matrix"
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: [version, targets, checks]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.targets.outputs.matrix) }}
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install the Qt libraries PyQt6 needs
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1 fonts-dejavu-core
+
+      - name: Install the dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Fetch the engines this build ships
+        run: python Engines/fetch_engines.py --target ${{ matrix.target }}
+
+      - name: Build the application
+        env:
+          DEEPSIGHT_ONEDIR: "1"
+          DEEPSIGHT_REQUIRE_ENGINES: "1"
+          DEEPSIGHT_UPX: "0"
+        run: python -m PyInstaller deepsight.spec --noconfirm --clean
+
+      - name: Check the packaged application (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          ./dist/DeepSight/DeepSight --self-check self-check.json
+          cat self-check.json
+
+      - name: Check the packaged application (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          ./dist/DeepSight.app/Contents/MacOS/DeepSight --self-check self-check.json
+          cat self-check.json
+
+      - name: Check the packaged application (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath "dist\DeepSight\DeepSight.exe" -ArgumentList "--self-check", "self-check.json" -Wait -PassThru
+          Get-Content self-check.json
+          if ($process.ExitCode -ne 0) {
+            throw "the packaged application did not pass its self-check"
+          }
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          tar --create --gzip --file "DeepSight-${{ needs.version.outputs.version }}-${{ matrix.target }}.tar.gz" --directory dist DeepSight
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent dist/DeepSight.app "DeepSight-${{ needs.version.outputs.version }}-${{ matrix.target }}.zip"
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          tar.exe -a -c -f "DeepSight-${{ needs.version.outputs.version }}-${{ matrix.target }}.zip" -C dist DeepSight
+
+      - name: Record the provenance of the artifact
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: DeepSight-${{ needs.version.outputs.version }}-${{ matrix.target }}.${{ runner.os == 'Linux' && 'tar.gz' || 'zip' }}
+
+      - name: Keep the artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeepSight-${{ needs.version.outputs.version }}-${{ matrix.target }}
+          path: DeepSight-${{ needs.version.outputs.version }}-${{ matrix.target }}.${{ runner.os == 'Linux' && 'tar.gz' || 'zip' }}
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    name: Publish
+    needs: [version, build]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Collect the artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Write the checksums
+        run: |
+          cd release
+          sha256sum ./* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          arguments=(--title "DeepSight $VERSION" --generate-notes --verify-tag)
+          if [ "$PRERELEASE" = "true" ]; then
+            arguments+=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" "${arguments[@]}" release/*

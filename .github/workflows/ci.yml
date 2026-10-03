@@ -4,6 +4,7 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -46,58 +47,18 @@ jobs:
         run: python -m pytest -q
 
   engines:
-    name: End-to-end with ${{ matrix.engine }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: End-to-end (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            engine: ember
-            url: "https://github.com/ExxDreamerCode/Ember/releases/download/V1.3.1/ember-1.3.1-9e015493-linux-amd64.tar.gz"
-            asset: ember-1.3.1-9e015493-linux-amd64.tar.gz
-            member: ember-1.3.1-9e015493-linux-amd64/ember
-            sha256: 7c57131954e472b195bebea928ffae02af22fe966c6ba207db8ec7a263dd8dd1
-            install_to: Engines/ember-1.3.1
-          - os: ubuntu-latest
-            engine: stockfish
-            url: "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64.tar"
-            asset: stockfish-ubuntu-x86-64.tar
-            member: stockfish/stockfish-ubuntu-x86-64
-            sha256: 5c6f38b02a4da5f3ffe763f27da6c3e743eebefd92b50cb3661623b96696adff
-            install_to: Engines/stockfish
-          - os: windows-latest
-            engine: ember
-            url: "https://github.com/ExxDreamerCode/Ember/releases/download/V1.3.1/ember-1.3.1-9e015493-windows-amd64.zip"
-            asset: ember-1.3.1-9e015493-windows-amd64.zip
-            member: ember.exe
-            sha256: 5dd936bc8a7c3ac2ad9468e6918dcb89e5d050c6f7d06475bf148c4d2a356eba
-            install_to: Engines/ember-1.3.1.exe
-          - os: windows-latest
-            engine: stockfish
-            url: "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-windows-x86-64.zip"
-            asset: stockfish-windows-x86-64.zip
-            member: stockfish-windows-x86-64.exe
-            sha256: 40cc975817e7eee270b03f354810d20956df565420d320f6dd37d454dc81a139
-            install_to: Engines/stockfish-windows-x86-64.exe
-          - os: macos-latest
-            engine: ember
-            url: "https://github.com/ExxDreamerCode/Ember/releases/download/V1.3.1/ember-1.3.1-9e015493-macos-arm64.tar.gz"
-            asset: ember-1.3.1-9e015493-macos-arm64.tar.gz
-            member: ember-1.3.1-9e015493-macos-arm64/ember
-            sha256: 7843bd0e9843daeeec2b0db64c979fa33c2a44fea091806340c027448e6309ff
-            install_to: Engines/ember-1.3.1
-          - os: macos-latest
-            engine: stockfish
-            url: "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-macos-m1-apple-silicon.tar"
-            asset: stockfish-macos-m1-apple-silicon.tar
-            member: stockfish/stockfish-macos-m1-apple-silicon
-            sha256: 4d77c4aa3ad9bd1ea8111f2ac5a4620fe7ebf998d6893bf828d49ccd579c8cb0
-            install_to: Engines/stockfish
-
-    env:
-      DEEPSIGHT_RUN_ENGINE_TESTS: "1"
-      DEEPSIGHT_ENGINE: ${{ matrix.engine }}
+          - target: linux-x86_64
+            runner: ubuntu-24.04
+          - target: windows-x86_64
+            runner: windows-latest
+          - target: macos-arm64
+            runner: macos-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -124,30 +85,23 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Download the engine this build ships (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          curl --fail --location --silent --show-error --output "/tmp/${{ matrix.asset }}" "${{ matrix.url }}"
-          python -c "import hashlib, sys; digest = hashlib.sha256(open(sys.argv[1], 'rb').read()).hexdigest(); sys.exit(f'hash mismatch: {digest}') if digest != sys.argv[2] else 0" "/tmp/${{ matrix.asset }}" "${{ matrix.sha256 }}"
-          tar --extract --file "/tmp/${{ matrix.asset }}" --directory /tmp
-          install -m 755 "/tmp/${{ matrix.member }}" "${{ matrix.install_to }}"
+      - name: Fetch the engines this build ships
+        run: python Engines/fetch_engines.py --target ${{ matrix.target }}
 
-      - name: Download the engine this build ships (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $archive = Join-Path $env:RUNNER_TEMP "${{ matrix.asset }}"
-          $unpacked = Join-Path $env:RUNNER_TEMP "engine"
-          Invoke-WebRequest -Uri "${{ matrix.url }}" -OutFile $archive
-          $actual = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLower()
-          if ($actual -ne "${{ matrix.sha256 }}") { throw "hash mismatch: $actual" }
-          Expand-Archive -LiteralPath $archive -DestinationPath $unpacked -Force
-          $binary = Get-ChildItem -Path $unpacked -Recurse -Filter "${{ matrix.member }}" | Select-Object -First 1
-          if (-not $binary) { throw "no ${{ matrix.member }} in the archive" }
-          Copy-Item $binary.FullName "${{ matrix.install_to }}" -Force
+      - name: Check that the engines answer UCI
+        run: python main.py --self-check self-check.json
 
-      - name: Check that the engine actually starts
-        run: python -c "import subprocess, sys; out = subprocess.run([sys.argv[1]], input='uci\nquit\n', capture_output=True, text=True, timeout=60); print(out.stdout[:400]); sys.exit('uciok' not in out.stdout)" "${{ matrix.install_to }}"
+      - name: Show the self-check report
+        run: python -c "print(open('self-check.json', encoding='utf-8').read())"
 
-      - name: Run the test suite, including the end-to-end games
-        run: python -m pytest -q
+      - name: Play the end-to-end games with Ember
+        env:
+          DEEPSIGHT_RUN_ENGINE_TESTS: "1"
+          DEEPSIGHT_ENGINE: ember
+        run: python -m pytest -q tests/test_integration_engine.py tests/test_self_check.py
+
+      - name: Play the end-to-end games with Stockfish
+        env:
+          DEEPSIGHT_RUN_ENGINE_TESTS: "1"
+          DEEPSIGHT_ENGINE: stockfish
+        run: python -m pytest -q tests/test_integration_engine.py tests/test_self_check.py
