@@ -4,7 +4,7 @@
 
 English version: [../README.md](../README.md).
 
-![Python](https://img.shields.io/badge/python-3.11-blue)
+![Python](https://img.shields.io/badge/python-3.13-blue)
 ![PyQt6](https://img.shields.io/badge/PyQt6-6.5+-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 [![CI](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml/badge.svg)](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml)
@@ -52,11 +52,11 @@ pytest>=7.0
 git clone https://github.com/ExxDreamerCode/DeepSight.git
 cd DeepSight
 pip install -r requirements.txt
-Engines/download-engines.bat
+python Engines/fetch_engines.py
 python main.py
 ```
 
-В исходном дереве движки не хранятся. Для запуска встроенных движков из исходников положите совместимые UCI-исполняемые файлы в `Engines/` или используйте Nix-сборку ниже. Либо запустите download-engines.bat который автоматически подгрузит оба нужных движка. 
+В исходном дереве движки не хранятся. `Engines/fetch_engines.py` ставит те два, что поставляются сборками, — для машины, на которой он запущен: скачивает каждый из закреплённого релиза, сверяет SHA-256 с записанным в `engines.json` и только потом кладёт в `Engines/`. Ключ `--target linux-arm64` берёт движки для другой платформы, `--list` показывает доступные цели, а в Windows `Engines/download-engines.bat` — тот же скрипт, который сам находит интерпретатор Python. Nix-сборка ниже делает то же самое внутри derivation.
 
 ### Сборка через Nix для текущей системы
 
@@ -70,16 +70,28 @@ nix build .#
 - Ember скачивается из закрепленного релиза `ExxDreamerCode/Ember`
 - Stockfish скачивается из закрепленного релиза `official-stockfish/Stockfish`
 
-### Сборка Windows exe вручную
+### Сборка приложения вручную
 
-Nix-сборка поддерживается только для Linux. Для Windows используйте PyInstaller вручную. Конфигурация находится в `deepsight.spec`.
+Nix-сборка поддерживается только для Linux. Остальные системы закрывает PyInstaller, его конфигурация — в `deepsight.spec`:
 
 ```bash
 pip install pyinstaller
 pyinstaller deepsight.spec --clean --noconfirm
 ```
 
-Готовый `.exe` появится в папке `dist/`. PyInstaller-спецификация встраивает движки; положите совместимые Windows UCI-движки рядом с приложением в `Engines/` или запустите `Engines/download-engines.bat`. Если движков нету, при сборке через pyinstaller они скачаются автоматически.
+Готовая однофайловая сборка появится в папке `dist/`. Спецификация встраивает движки, поэтому сначала запустите `Engines/fetch_engines.py` — или `Engines/download-engines.bat` в Windows, который к тому же сам скачает движки, если сборка их не нашла.
+
+Релизы собираются из той же спецификации с тремя переключателями:
+
+```bash
+DEEPSIGHT_ONEDIR=1 DEEPSIGHT_REQUIRE_ENGINES=1 DEEPSIGHT_UPX=0 pyinstaller deepsight.spec --noconfirm --clean
+```
+
+- `DEEPSIGHT_ONEDIR` создаёт папку вместо одного файла. С двумя движками и Qt внутри однофайловая сборка распаковывала бы сотни мегабайт при каждом запуске.
+- `DEEPSIGHT_REQUIRE_ENGINES` роняет сборку, если движка нет, — релиз не может уйти без них.
+- `DEEPSIGHT_UPX=0` не подпускает UPX к исполняемым файлам: на упакованные им бинарники ругаются некоторые антивирусы.
+
+На macOS та же сборка дополнительно создаёт `dist/DeepSight.app` с версией в `Info.plist`, а в Windows `.exe` несёт версию, имя продукта и копирайт как свойства файла. Положите `Images/DeepSight.ico` или `Images/DeepSight.icns` рядом с остальными картинками, чтобы у сборок появилась иконка; без неё они получают стандартную от PyInstaller.
 
 ---
 
@@ -117,16 +129,45 @@ pyinstaller deepsight.spec --clean --noconfirm
    - Автоматически выполняется при загрузке партии или переходе к ходу
    - Отображается на шкале оценки и в строке состояния
 
+7. **Проверка сборки:**
+   ```bash
+   python main.py --version
+   python main.py --self-check report.json
+   ```
+   `--self-check` пишет JSON-отчёт о том, что приложение реально нашло: свою версию, является ли сборка упакованной, версии Qt и Python, где лежит каждый движок, отвечает ли каждый по UCI и на месте ли книга, картинки и тексты лицензий. При нехватке чего-либо код возврата ненулевой — именно так релизный workflow отказывается публиковать сломанный артефакт. Та же сводка есть в меню `Help → About DeepSight`.
+
+---
+
+## Релизы
+
+Релизы собирает [.github/workflows/release.yml](../.github/workflows/release.yml) по тегу `v`, и только после того, как прошёл весь набор тестов — сначала быстрый на трёх системах, затем сквозные партии на обоих движках. Каждая сборка запускает собранное приложение с `--self-check`, поэтому артефакт, движки которого не отвечают или в котором нет книги либо текстов лицензий, до страницы релиза не доходит.
+
+| Артефакт | Система |
+|----------|---------|
+| `DeepSight-<версия>-windows-x86_64.zip` | Windows, Intel и AMD |
+| `DeepSight-<версия>-windows-arm64.zip` | Windows на Arm |
+| `DeepSight-<версия>-macos-arm64.zip` | macOS, Apple silicon |
+| `DeepSight-<версия>-macos-x86_64.zip` | macOS, Intel |
+| `DeepSight-<версия>-linux-x86_64.tar.gz` | Linux, Intel и AMD |
+| `DeepSight-<версия>-linux-arm64.tar.gz` | Linux на Arm |
+
+Оба движка лежат внутри каждого архива, так что при первом запуске ничего скачивать не нужно. Контрольные суммы — в `SHA256SUMS.txt`, и на каждый артефакт выдаётся аттестация происхождения сборки. Сборки под Linux и Windows x86_64 берут официальные релизы движков; для Linux на Arm, где Stockfish ничего не публикует, релизный workflow собирает его из закреплённого коммита исходников.
+
+Сборки не подписаны: платного сертификата за ними нет.
+
+- **macOS** отказывается открывать неподписанную загрузку со словами «the developer cannot be verified». Один раз откройте её правым щелчком и выберите «Открыть» либо снимите флаг: `xattr -dr com.apple.quarantine DeepSight.app`.
+- **Windows** может показать предупреждение SmartScreen. Нажмите «Подробнее», затем «Выполнить в любом случае».
+
 ---
 
 ## Встроенные движки
 
-| Движок | Linux Nix-сборка | Windows вручную | Протокол | Лицензия |
-|--------|-------------------|----------------|----------|----------|
-| **Ember** | `Engines/ember-1.3.1` | `Engines/ember-1.3.1.exe` | UCI | MIT (наш) |
-| **Stockfish** | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe` | UCI | GPL-3.0-or-later — см. [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) |
+| Движок | Версия | Сборки под Unix | Сборки под Windows | Протокол | Лицензия |
+|--------|--------|-----------------|--------------------|----------|----------|
+| **Ember** | 1.3.1 | `Engines/ember-1.3.1` | `Engines/ember-1.3.1.exe` | UCI | MIT (наш) |
+| **Stockfish** | 18 | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe`, на Arm — `Engines/stockfish.exe` | UCI | GPL-3.0-or-later — см. [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) |
 
-Движки не коммитятся в репозиторий. Linux Nix-сборка скачивает или собирает их как часть derivation. Для Windows положите совместимые `.exe` движки в `Engines/` рядом с приложением или запустите `Engines/download-engines.bat`. Оба движка названы по версии, из которой они взяты, поэтому по папке видно, какая версия установлена; имена без версии (`ember.exe`, `ember`) тоже принимаются.
+Движки не коммитятся в репозиторий. Их поставляют релизы и Nix-сборка, а из исходников их ставит `Engines/fetch_engines.py` — те, что подходят текущей машине. Какой бинарник из какого релиза, под каким именем и с какой контрольной суммой — записано один раз в `engines.json`, который читают и загрузчик, и CI, и релизный workflow: поэтому релиз не может увезти движок, который разработчик не проверял. Оба движка названы по версии, из которой они взяты, поэтому по папке видно, какая версия установлена; имена без версии (`ember.exe`, `ember`) тоже принимаются.
 
 ---
 
@@ -176,8 +217,16 @@ DEEPSIGHT_RUN_ENGINE_TESTS=1 python -m pytest
 ```
 
 [CI](../.github/workflows/ci.yml) запускается на каждый push и pull request — на Linux, Windows и
-macOS: быстрый набор на Python 3.13 и сквозной — на каждом движке, который поставляется сборками,
-скачанном из релиза, закреплённого в `flake.nix`.
+macOS: быстрый набор на Python 3.13 и сквозной набор на обоих движках, которые ставит
+`Engines/fetch_engines.py` по пинам из `engines.json`. Релизный workflow вызывает тот же файл,
+поэтому тег проверяется ровно так же, как ветка.
+
+### Версии
+
+Версия живёт в `deepsight/__init__.py` и больше нигде. `flake.nix`, спецификация упаковки, диалог
+About и релизный workflow читают её оттуда, а тест падает, если флейк разошёлся с ней. Релизы
+помечаются тегом `v<версия>`, и релизный workflow отказывается публиковать, когда тег и код
+расходятся. Версия с суффиксом, например `0.2.0-rc.1`, публикуется как pre-release.
 
 ---
 

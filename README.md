@@ -4,7 +4,7 @@
 
 Russian version: [docs/README.ru.md](docs/README.ru.md).
 
-![Python](https://img.shields.io/badge/python-3.11-blue)
+![Python](https://img.shields.io/badge/python-3.13-blue)
 ![PyQt6](https://img.shields.io/badge/PyQt6-6.5+-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 [![CI](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml/badge.svg)](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml)
@@ -52,11 +52,11 @@ pytest>=7.0
 git clone https://github.com/ExxDreamerCode/DeepSight.git
 cd DeepSight
 pip install -r requirements.txt
-Engines/download-engines.bat
+python Engines/fetch_engines.py
 python main.py
 ```
 
-Engines are not kept in the source tree. To run the built-in engines from source, put compatible UCI executables into `Engines/`, or use the Nix build below. Otherwise run `download-engines.bat`, which fetches both required engines automatically.
+Engines are not kept in the source tree. `Engines/fetch_engines.py` installs the two the builds ship for the machine it runs on: it downloads each one from its pinned release, checks the SHA-256 recorded in `engines.json` and only then puts it into `Engines/`. `--target linux-arm64` fetches for another platform instead, `--list` shows what is available, and on Windows `Engines/download-engines.bat` is the same script with a Python interpreter looked up for you. The Nix build below does the same thing inside the derivation.
 
 ### Building with Nix for the current system
 
@@ -70,16 +70,28 @@ This build produces a Nix derivation of the application and adds the engines to 
 - Ember is downloaded from the pinned `ExxDreamerCode/Ember` release
 - Stockfish is downloaded from the pinned `official-stockfish/Stockfish` release
 
-### Building the Windows exe by hand
+### Building the application by hand
 
-The Nix build is Linux-only. On Windows, use PyInstaller directly — the configuration lives in `deepsight.spec`.
+The Nix build is Linux-only. PyInstaller covers the other systems, and its configuration lives in `deepsight.spec`:
 
 ```bash
 pip install pyinstaller
 pyinstaller deepsight.spec --clean --noconfirm
 ```
 
-The finished `.exe` appears in `dist/`. The PyInstaller spec embeds the engines, so put compatible Windows UCI engines next to the application in `Engines/`, or run `Engines/download-engines.bat`. If the engines are missing, a PyInstaller build downloads them automatically.
+The finished single-file build appears in `dist/`. The spec embeds the engines, so run `Engines/fetch_engines.py` first — or `Engines/download-engines.bat` on Windows, which also downloads them automatically when a build finds none.
+
+The releases come from the same spec with three switches set:
+
+```bash
+DEEPSIGHT_ONEDIR=1 DEEPSIGHT_REQUIRE_ENGINES=1 DEEPSIGHT_UPX=0 pyinstaller deepsight.spec --noconfirm --clean
+```
+
+- `DEEPSIGHT_ONEDIR` produces a folder instead of a single file. With two engines and Qt inside, a one-file build would unpack hundreds of megabytes on every launch.
+- `DEEPSIGHT_REQUIRE_ENGINES` fails the build when an engine is missing, so a release cannot go out without them.
+- `DEEPSIGHT_UPX=0` keeps UPX away from the executables, which some antivirus products flag.
+
+On macOS the same build also produces `dist/DeepSight.app` with the version in its `Info.plist`, and on Windows the `.exe` carries the version, the product name and the copyright as file properties. Place `Images/DeepSight.ico` or `Images/DeepSight.icns` next to the other images to give the builds an icon; without it they get the PyInstaller default.
 
 ---
 
@@ -117,16 +129,45 @@ The finished `.exe` appears in `dist/`. The PyInstaller spec embeds the engines,
    - Runs automatically when a game is loaded or a move is selected
    - Shown on the evaluation bar and in the status bar
 
+7. **Checking a build:**
+   ```bash
+   python main.py --version
+   python main.py --self-check report.json
+   ```
+   `--self-check` writes a JSON report of what the application actually found — its version, whether it is a packaged build, the Qt and Python versions, where each engine is, whether each one answers UCI, and whether the book, the images and the license notices are in place. It exits non-zero when something is missing, which is how the release workflow refuses to publish a broken artifact. The same summary appears under `Help → About DeepSight`.
+
+---
+
+## Releases
+
+Releases are built by [.github/workflows/release.yml](.github/workflows/release.yml) from a `v` tag, and only once the whole test suite has passed — the fast one on three systems, then the end-to-end games against both engines. Every build runs its own packaged application with `--self-check`, so an artifact whose engines do not answer, or that is missing the book or the license notices, never reaches the release page.
+
+| Artifact | System |
+|----------|--------|
+| `DeepSight-<version>-windows-x86_64.zip` | Windows, Intel and AMD |
+| `DeepSight-<version>-windows-arm64.zip` | Windows on Arm |
+| `DeepSight-<version>-macos-arm64.zip` | macOS, Apple silicon |
+| `DeepSight-<version>-macos-x86_64.zip` | macOS, Intel |
+| `DeepSight-<version>-linux-x86_64.tar.gz` | Linux, Intel and AMD |
+| `DeepSight-<version>-linux-arm64.tar.gz` | Linux on Arm |
+
+Both engines travel inside each archive, so nothing has to be downloaded on first launch. `SHA256SUMS.txt` carries the digests, and every artifact gets a build provenance attestation. The Linux and Windows x86_64 builds ship the official engine releases; for Linux on Arm, where Stockfish publishes nothing, the release workflow builds it from the pinned source commit instead.
+
+The builds are not code signed, because there is no paid certificate behind them.
+
+- **macOS** refuses an unsigned download with "the developer cannot be verified". Open it once with a right click and then "Open", or clear the flag: `xattr -dr com.apple.quarantine DeepSight.app`.
+- **Windows** may show a SmartScreen warning. Choose "More info", then "Run anyway".
+
 ---
 
 ## Built-in engines
 
-| Engine | Linux Nix build | Windows, by hand | Protocol | License |
-|--------|-------------------|----------------|----------|---------|
-| **Ember** | `Engines/ember-1.3.1` | `Engines/ember-1.3.1.exe` | UCI | MIT (ours) |
-| **Stockfish** | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe` | UCI | GPL-3.0-or-later - see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
+| Engine | Version | Unix builds | Windows builds | Protocol | License |
+|--------|---------|-------------|----------------|----------|---------|
+| **Ember** | 1.3.1 | `Engines/ember-1.3.1` | `Engines/ember-1.3.1.exe` | UCI | MIT (ours) |
+| **Stockfish** | 18 | `Engines/stockfish` | `Engines/stockfish-windows-x86-64.exe`, or `Engines/stockfish.exe` on Arm | UCI | GPL-3.0-or-later - see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 
-Engines are not committed to the repository. The Linux Nix build downloads or builds them as part of the derivation. On Windows, put compatible `.exe` engines into `Engines/` next to the application, or run `Engines/download-engines.bat`. Both engines are named after the version they come from, so the folder says which one you have; a plain `ember.exe` or `ember` is accepted as well.
+Engines are not committed to the repository. The releases and the Nix build ship them, and from source `Engines/fetch_engines.py` installs the ones matching the current machine. Which binary comes from which release, under which name and with which digest, is recorded once in `engines.json`, which the downloader, the CI and the release workflow all read — so a release cannot ship an engine that a developer never tested. Both engines are named after the version they come from, so the folder says which one you have; a plain `ember.exe` or `ember` is accepted as well.
 
 ---
 
@@ -176,8 +217,17 @@ DEEPSIGHT_RUN_ENGINE_TESTS=1 python -m pytest
 ```
 
 [CI](.github/workflows/ci.yml) runs on every push and pull request, on Linux, Windows and macOS:
-the fast suite on Python 3.13, and the end-to-end suite against each engine the builds ship,
-downloaded from the release pinned in `flake.nix`.
+the fast suite on Python 3.13, and the end-to-end suite with both engines, fetched through
+`Engines/fetch_engines.py` from the pins in `engines.json`. The release workflow calls the same
+file, so a tag is checked exactly like a branch.
+
+### Versioning
+
+The version lives in `deepsight/__init__.py` and nowhere else. `flake.nix`, the packaging spec, the
+About dialog and the release workflow all read it from there, and a test fails when the flake
+drifts. Releases are tagged `v<version>`, and the release workflow refuses to publish when the tag
+and the code disagree. A version carrying a suffix, such as `0.2.0-rc.1`, is published as a
+pre-release.
 
 ---
 
