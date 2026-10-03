@@ -175,8 +175,8 @@ because it requires one of the engines in `Engines/`:
 DEEPSIGHT_RUN_ENGINE_TESTS=1 python -m pytest
 ```
 
-[CI](.github/workflows/ci.yml) runs on every push and pull request, on Linux and Windows: the fast
-suite on Python 3.11, 3.12 and 3.13, and the end-to-end suite against each engine the builds ship,
+[CI](.github/workflows/ci.yml) runs on every push and pull request, on Linux, Windows and macOS:
+the fast suite on Python 3.13, and the end-to-end suite against each engine the builds ship,
 downloaded from the release pinned in `flake.nix`.
 
 ---

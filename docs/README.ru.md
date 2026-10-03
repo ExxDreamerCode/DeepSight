@@ -175,9 +175,9 @@ python -m pytest
 DEEPSIGHT_RUN_ENGINE_TESTS=1 python -m pytest
 ```
 
-[CI](../.github/workflows/ci.yml) запускается на каждый push и pull request, на Linux и Windows:
-быстрый набор — на Python 3.11, 3.12 и 3.13, а сквозной — на каждом движке, который поставляется
-сборками, скачанном из релиза, закреплённого в `flake.nix`.
+[CI](../.github/workflows/ci.yml) запускается на каждый push и pull request — на Linux, Windows и
+macOS: быстрый набор на Python 3.13 и сквозной — на каждом движке, который поставляется сборками,
+скачанном из релиза, закреплённого в `flake.nix`.
 
 ---
 
