@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(4)
 
         self.input_panel = InputPanel(self.game_state)
-        self.input_panel.setFixedWidth(300)
+        self.input_panel.setFixedWidth(312)
         main_layout.addWidget(self.input_panel)
 
         center = QWidget()

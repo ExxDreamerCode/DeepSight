@@ -164,8 +164,8 @@ python -m pytest
 ```
 
 The fast suite covers the expected-points model, static exchange evaluation, the
-move classifier, the opening book and the engine's MultiPV plumbing. It needs no
-engine binary.
+move classifier, the opening book, the engine's MultiPV plumbing and the
+incremental re-analysis. It needs no engine binary.
 
 The end-to-end suite runs a whole game through a real UCI engine and is opt-in,
 because it requires one of the engines in `Engines/`:

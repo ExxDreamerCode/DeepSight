@@ -15,6 +15,7 @@ from .engine_manager import EngineProtocol
 from .engine_registry import list_engine_types, get_engine_display_name, get_engine_short_name
 from .models.game_state import GameState
 
+BUTTON_HEIGHT = 28
 
 class InputPanel(QWidget):
     pgn_loaded = pyqtSignal(str)
@@ -133,21 +134,23 @@ class InputPanel(QWidget):
 
         time_layout = QFormLayout()
         self.time_spin = QDoubleSpinBox()
+        self.time_spin.setMinimumHeight(20)
         self.time_spin.setRange(0.1, 60.0)
         self.time_spin.setSingleStep(0.1)
         self.time_spin.setDecimals(1)
         self.time_spin.setValue(1.0)
         self.time_spin.setSuffix(" sec")
-        self.time_spin.setStyleSheet("background-color: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 4px; padding: 2px;")
+        self.time_spin.setStyleSheet("background-color: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 4px; padding: 1px;")
         time_layout.addRow("Time/move:", self.time_spin)
         analysis_layout.addLayout(time_layout)
 
         depth_layout = QFormLayout()
         self.depth_spin = QSpinBox()
+        self.depth_spin.setMinimumHeight(20)
         self.depth_spin.setRange(0, 99)
         self.depth_spin.setValue(0)
         self.depth_spin.setSpecialValueText("Auto")
-        self.depth_spin.setStyleSheet("background-color: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 4px; padding: 2px;")
+        self.depth_spin.setStyleSheet("background-color: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 4px; padding: 1px;")
         depth_layout.addRow("Depth:", self.depth_spin)
         analysis_layout.addLayout(depth_layout)
 
@@ -165,11 +168,13 @@ class InputPanel(QWidget):
         analysis_layout.addWidget(self.skip_analyzed_check)
 
         analysis_buttons = QHBoxLayout()
-        analysis_buttons.setSpacing(2)
+        analysis_buttons.setSpacing(6)
+
         self.btn_start = QPushButton("Start")
         self.btn_start.clicked.connect(self._start_analysis)
+        self.btn_start.setMinimumHeight(BUTTON_HEIGHT)
         self.btn_start.setStyleSheet("""
-            QPushButton { background-color: #2a6e3f; color: #fff; padding: 3px 3px; border-radius: 3px; font-size: 10px; }
+            QPushButton { background-color: #2a6e3f; color: #fff; padding: 4px 8px; border-radius: 4px; }
             QPushButton:hover { background-color: #3a8e5f; }
             QPushButton:disabled { background-color: #333; color: #666; }
         """)
@@ -178,16 +183,18 @@ class InputPanel(QWidget):
         self.btn_stop = QPushButton("Stop")
         self.btn_stop.clicked.connect(self.analysis_stopped.emit)
         self.btn_stop.setEnabled(False)
+        self.btn_stop.setMinimumHeight(BUTTON_HEIGHT)
         self.btn_stop.setStyleSheet("""
-            QPushButton { background-color: #8b3a3a; color: #fff; padding: 3px 3px; border-radius: 3px; font-size: 10px; }
+            QPushButton { background-color: #8b3a3a; color: #fff; padding: 4px 8px; border-radius: 4px; }
             QPushButton:hover { background-color: #b54a4a; }
             QPushButton:disabled { background-color: #333; color: #666; }
         """)
         analysis_buttons.addWidget(self.btn_stop)
 
         self.btn_flip = QPushButton("Flip")
+        self.btn_flip.setMinimumHeight(BUTTON_HEIGHT)
         self.btn_flip.setStyleSheet("""
-            QPushButton { background-color: #3a3a5a; color: #ddd; padding: 3px 3px; border-radius: 3px; font-size: 10px; }
+            QPushButton { background-color: #3a3a5a; color: #ddd; padding: 4px 8px; border-radius: 4px; }
             QPushButton:hover { background-color: #5a5a8a; }
         """)
         self.btn_flip.clicked.connect(self._flip_board)
