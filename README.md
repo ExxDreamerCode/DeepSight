@@ -7,6 +7,7 @@ Russian version: [docs/README.ru.md](docs/README.ru.md).
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![PyQt6](https://img.shields.io/badge/PyQt6-6.5+-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
+[![CI](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml/badge.svg)](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml)
 
 <img alt="DeepSight window: chessboard, evaluation bar and side panels" src="Images/screenshot.png" width="860">
 
@@ -173,6 +174,10 @@ because it requires one of the engines in `Engines/`:
 ```bash
 DEEPSIGHT_RUN_ENGINE_TESTS=1 python -m pytest
 ```
+
+[CI](.github/workflows/ci.yml) runs on every push and pull request, on Linux and Windows: the fast
+suite on Python 3.11, 3.12 and 3.13, and the end-to-end suite against each engine the builds ship,
+downloaded from the release pinned in `flake.nix`.
 
 ---
 

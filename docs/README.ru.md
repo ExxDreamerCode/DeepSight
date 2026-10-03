@@ -7,6 +7,7 @@ English version: [../README.md](../README.md).
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![PyQt6](https://img.shields.io/badge/PyQt6-6.5+-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
+[![CI](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml/badge.svg)](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml)
 
 <img alt="Окно DeepSight: доска, шкала оценки и боковые панели" src="../Images/screenshot.png" width="860">
 
@@ -173,6 +174,10 @@ python -m pytest
 ```bash
 DEEPSIGHT_RUN_ENGINE_TESTS=1 python -m pytest
 ```
+
+[CI](../.github/workflows/ci.yml) запускается на каждый push и pull request, на Linux и Windows:
+быстрый набор — на Python 3.11, 3.12 и 3.13, а сквозной — на каждом движке, который поставляется
+сборками, скачанном из релиза, закреплённого в `flake.nix`.
 
 ---
 
