@@ -8,6 +8,7 @@ import pytest
 from deepsight.analysis_engine import AnalysisEngine
 from deepsight.classification_types import ClassificationConfig, MoveClassification
 from deepsight.engine_manager import EngineProtocol
+from deepsight.engine_registry import get_engine_path
 from deepsight.models.game_state import GameState
 from deepsight.move_classifier import BookChecker, MoveClassifier
 
@@ -21,20 +22,12 @@ PGN = """[Event "Paris"]
 19. e5 Qxa1+ 20. Ke2 Na6 21. Nxg7+ Kd8 22. Qf6+ Nxf6 23. Be7# *
 """
 
-ENGINE_CANDIDATES = (
-    "Engines/ember-1.3.1.exe",
-    "Engines/stockfish-windows-x86-64.exe",
-    "Engines/ember.exe",
-    "Engines/stockfish.exe",
-)
-
 
 def find_engine():
-    for candidate in ENGINE_CANDIDATES:
-        path = ROOT / candidate
-        if path.is_file():
-            return str(path)
-    return None
+    requested = os.environ.get("DEEPSIGHT_ENGINE")
+    if requested:
+        return get_engine_path(requested)
+    return get_engine_path("ember") or get_engine_path("stockfish")
 
 
 pytestmark = pytest.mark.skipif(
