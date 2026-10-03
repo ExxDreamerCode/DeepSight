@@ -57,7 +57,8 @@ def test_every_engine_is_either_downloaded_or_built(pins):
 def test_the_pins_install_engines_where_the_registry_looks(pins):
     for target in pins["targets"]:
         for name, entry in target["engines"].items():
-            installed = entry.get("build", entry)["install_as"]
+            installed = entry["install_as"]
+            assert installed.startswith("Engines/"), (target["id"], name)
             assert installed in BUILTIN_ENGINES[name.capitalize()], (target["id"], installed)
 
 
@@ -186,12 +187,35 @@ def test_an_engine_that_is_already_installed_is_left_alone(tmp_path, monkeypatch
 
 
 def test_the_build_is_pinned_to_a_tag_and_a_commit(pins):
-    build = fetch_engines.find_target(pins, "linux-arm64")["engines"]["stockfish"]["build"]
+    stockfish = fetch_engines.find_target(pins, "linux-arm64")["engines"]["stockfish"]
+    build = stockfish["build"]
 
+    assert stockfish["install_as"] == "Engines/stockfish"
     assert build["tag"] == "sf_18"
     assert build["make"] == "profile-build"
     assert build["arch"] == "armv8"
-    assert build["install_as"] == "Engines/stockfish"
+    assert build["repo"].endswith("Stockfish.git")
+    assert "install_as" not in build
+
+
+def test_a_built_engine_is_installed_where_install_as_says(tmp_path, monkeypatch):
+    monkeypatch.setattr(fetch_engines, "ROOT", tmp_path)
+    monkeypatch.setattr(fetch_engines, "clone_source", lambda entry, workdir: tmp_path)
+    monkeypatch.setattr(fetch_engines.subprocess, "run", lambda *arguments, **keywords: None)
+
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "stockfish").write_bytes(b"a built engine")
+
+    entry = {
+        "install_as": "Engines/stockfish",
+        "build": {"repo": "https://example.invalid/Stockfish.git", "tag": "sf_18", "arch": "armv8"},
+    }
+
+    installed = fetch_engines.fetch_engine("stockfish", entry, tmp_path, jobs=1)
+
+    assert installed == tmp_path / "Engines" / "stockfish"
+    assert installed.read_bytes() == b"a built engine"
 
 
 def test_an_engine_is_downloaded_checked_and_installed(tmp_path, monkeypatch):

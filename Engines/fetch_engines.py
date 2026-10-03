@@ -120,9 +120,9 @@ def clone_source(entry: Dict[str, Any], workdir: Path) -> Path:
 
 
 def build_engine(engine: str, entry: Dict[str, Any], workdir: Path, jobs: int) -> Path:
-    source = clone_source(entry, workdir)
+    source = clone_source(entry["build"], workdir)
     subprocess.run(
-        ["make", f"-j{jobs}", entry.get("make", "build"), f"ARCH={entry['arch']}"],
+        ["make", f"-j{jobs}", entry["build"].get("make", "build"), f"ARCH={entry['build']['arch']}"],
         cwd=source / "src",
         check=True,
     )
@@ -142,7 +142,7 @@ def fetch_engine(engine: str, entry: Dict[str, Any], workdir: Path, jobs: int) -
     if "build" in entry:
         build = entry["build"]
         print(f"{engine}: building from {build['repo']} at {build['tag']} ({build['arch']})")
-        return build_engine(engine, build, workdir, jobs)
+        return build_engine(engine, entry, workdir, jobs)
 
     archive = workdir / entry["asset"]
     print(f"{engine}: downloading {entry['asset']}")
