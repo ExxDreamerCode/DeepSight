@@ -186,7 +186,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
           PRERELEASE: ${{ needs.version.outputs.prerelease }}
         run: |
-          arguments=(--title "DeepSight $VERSION" --generate-notes --verify-tag)
+          arguments=(--title "DeepSight $VERSION" --generate-notes)
           if [ "$PRERELEASE" = "true" ]; then
             arguments+=(--prerelease)
           fi
