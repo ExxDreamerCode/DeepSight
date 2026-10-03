@@ -69,14 +69,14 @@ jobs:
             url: "https://github.com/ExxDreamerCode/Ember/releases/download/V1.3.1/ember-1.3.1-9e015493-windows-amd64.zip"
             asset: ember-1.3.1-9e015493-windows-amd64.zip
             member: ember.exe
-            sha256: cd3ce717c2b29fb1d93d4c73b9804e79e56995374a5ee7eba296332f0a992647
+            sha256: 5dd936bc8a7c3ac2ad9468e6918dcb89e5d050c6f7d06475bf148c4d2a356eba
             install_to: Engines/ember-1.3.1.exe
           - os: windows-latest
             engine: stockfish
             url: "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-windows-x86-64.zip"
             asset: stockfish-windows-x86-64.zip
             member: stockfish-windows-x86-64.exe
-            sha256: 9bde420202717ce083412027fbfb8c5c935b537591d712be8a8a8bae92f6e8d6
+            sha256: 40cc975817e7eee270b03f354810d20956df565420d320f6dd37d454dc81a139
             install_to: Engines/stockfish-windows-x86-64.exe
 
     env:
@@ -109,9 +109,9 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           curl --fail --location --silent --show-error --output "/tmp/${{ matrix.asset }}" "${{ matrix.url }}"
+          echo "${{ matrix.sha256 }}  /tmp/${{ matrix.asset }}" | sha256sum --check --strict
           tar --extract --file "/tmp/${{ matrix.asset }}" --directory /tmp
           install --mode 755 "/tmp/${{ matrix.member }}" "${{ matrix.install_to }}"
-          echo "${{ matrix.sha256 }}  ${{ matrix.install_to }}" | sha256sum --check --strict
 
       - name: Download the engine this build ships (Windows)
         if: runner.os == 'Windows'
@@ -120,16 +120,13 @@ jobs:
           $archive = Join-Path $env:RUNNER_TEMP "${{ matrix.asset }}"
           $unpacked = Join-Path $env:RUNNER_TEMP "engine"
           Invoke-WebRequest -Uri "${{ matrix.url }}" -OutFile $archive
+          $actual = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLower()
+          if ($actual -ne "${{ matrix.sha256 }}") { throw "hash mismatch: $actual" }
           Expand-Archive -LiteralPath $archive -DestinationPath $unpacked -Force
           $binary = Get-ChildItem -Path $unpacked -Recurse -Filter "${{ matrix.member }}" | Select-Object -First 1
           if (-not $binary) { throw "no ${{ matrix.member }} in the archive" }
-          $actual = (Get-FileHash -Algorithm SHA256 $binary.FullName).Hash.ToLower()
-          if ($actual -ne "${{ matrix.sha256 }}") { throw "hash mismatch: $actual" }
           Copy-Item $binary.FullName "${{ matrix.install_to }}" -Force
 
-      # Piping through the shell depends on the console encoding, which is how a byte order mark
-      # once reached the engine as part of its first command. Python talks to it the way the
-      # application does instead.
       - name: Check that the engine actually starts
         run: python -c "import subprocess, sys; out = subprocess.run([sys.argv[1]], input='uci\nquit\n', capture_output=True, text=True, timeout=60); print(out.stdout[:400]); sys.exit('uciok' not in out.stdout)" "${{ matrix.install_to }}"
 
