@@ -1,7 +1,9 @@
+import base64
 import hashlib
 import io
 import os
 import platform
+import re
 import sys
 import tarfile
 import zipfile
@@ -220,3 +222,26 @@ def test_the_command_line_lists_the_targets(capsys):
     assert "linux-arm64" in listed
     assert "windows-arm64" in listed
     assert "ubuntu-24.04-arm" in listed
+
+
+def _flake_value(text, name):
+    match = re.search(rf'{name}\s*=\s*"([^"]+)"', text)
+    assert match, f"flake.nix declares no {name}"
+    return match.group(1)
+
+
+def test_the_nix_flake_pins_the_same_linux_engines(pins):
+    text = (ROOT / "flake.nix").read_text(encoding="utf-8")
+    linux = fetch_engines.find_target(pins, "linux-x86_64")["engines"]
+    ember = linux["ember"]
+    stockfish = linux["stockfish"]
+
+    assert _flake_value(text, "emberVersion") == pins["engines"]["ember"]["version"]
+    assert _flake_value(text, "emberRev") == ember["asset"].split("-")[2]
+    assert _flake_value(text, "stockfishRelease") == stockfish["url"].rstrip("/").split("/")[-2]
+    assert "linux-amd64" in text
+    assert stockfish["asset"] in text
+
+    for name, entry in linux.items():
+        digest = base64.b64encode(bytes.fromhex(entry["sha256"])).decode()
+        assert f"sha256-{digest}" in text, f"flake.nix pins a different {name} digest"
