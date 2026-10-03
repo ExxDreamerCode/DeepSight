@@ -15,11 +15,6 @@ AUTHOR = "ExxDreamerCode"
 COPYRIGHT = "Copyright (c) 2026 ExxDreamerCode and Boris Nagaev (@starius)"
 BUNDLE_IDENTIFIER = "io.github.exxdreamercode.deepsight"
 
-# DEEPSIGHT_ONEDIR=1 builds a folder instead of a single file, which is what the releases ship:
-# a bundle with both engines inside is far too big to unpack again on every launch.
-# DEEPSIGHT_REQUIRE_ENGINES=1 fails the build when an engine is missing, so a release can never
-# go out without them. DEEPSIGHT_UPX=0 turns off UPX, whose packed executables some antivirus
-# products flag.
 ONE_DIR = os.environ.get("DEEPSIGHT_ONEDIR") == "1"
 REQUIRE_ENGINES = os.environ.get("DEEPSIGHT_REQUIRE_ENGINES") == "1"
 USE_UPX = os.environ.get("DEEPSIGHT_UPX", "1") == "1"
@@ -28,7 +23,6 @@ ENTITLEMENTS_FILE = os.environ.get("DEEPSIGHT_ENTITLEMENTS") or None
 
 
 def read_version():
-    """The version lives in deepsight/__init__.py and is only ever changed there."""
     text = Path(ROOT_DIR, "deepsight", "__init__.py").read_text(encoding="utf-8")
     match = re.search(r'__version__\s*=\s*"([^"]+)"', text)
     if match is None:
