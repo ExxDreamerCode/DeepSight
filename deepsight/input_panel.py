@@ -156,6 +156,14 @@ class InputPanel(QWidget):
         self.nnue_check.setStyleSheet("color: #ccc;")
         analysis_layout.addWidget(self.nnue_check)
 
+        self.skip_analyzed_check = QCheckBox("Skip analyzed moves")
+        self.skip_analyzed_check.setChecked(True)
+        self.skip_analyzed_check.setToolTip(
+            "Only evaluate moves that have no result yet, or whose position or settings changed"
+        )
+        self.skip_analyzed_check.setStyleSheet("color: #ccc;")
+        analysis_layout.addWidget(self.skip_analyzed_check)
+
         analysis_buttons = QHBoxLayout()
         analysis_buttons.setSpacing(2)
         self.btn_start = QPushButton("Start")
@@ -312,3 +320,6 @@ class InputPanel(QWidget):
 
     def get_nnue(self) -> bool:
         return self.nnue_check.isChecked()
+
+    def get_skip_analyzed(self) -> bool:
+        return self.skip_analyzed_check.isChecked()

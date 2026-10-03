@@ -6,12 +6,12 @@ import re
 import os
 from typing import Optional, List, Dict
 from enum import Enum
-
 import chess
 
 class EngineProtocol(Enum):
     UCI = "uci"
     XBOARD = "xboard"
+
 
 class EngineManager:
     def __init__(self, engine_path: str, protocol: EngineProtocol = EngineProtocol.UCI):
@@ -151,8 +151,15 @@ class EngineManager:
         if self.protocol == EngineProtocol.UCI:
             self._send("setoption name " + name + " value " + value)
 
-    def set_nnue(self, enabled: Optional[bool]):
+    def set_multipv(self, count: int) -> None:
+        if self.protocol != EngineProtocol.UCI:
+            return
+        self._send_option_if_supported("MultiPV", str(max(1, int(count))))
 
+    def supports_multipv(self) -> bool:
+        return self.protocol == EngineProtocol.UCI and "multipv" in self._uci_options
+
+    def set_nnue(self, enabled: Optional[bool]):
         self._use_nnue = enabled
         if self.protocol == EngineProtocol.UCI and self._ready:
             self._apply_nnue_option()
@@ -242,6 +249,8 @@ class EngineManager:
         data = {}
         m = re.search(r'depth\s+(\d+)', line)
         if m: data['depth'] = int(m.group(1))
+        m = re.search(r'multipv\s+(\d+)', line)
+        if m: data['multipv'] = int(m.group(1))
         m = re.search(r'score\s+cp\s+(-?\d+)', line)
         if m: data['score_cp'] = int(m.group(1))
         m = re.search(r'score\s+mate\s+(-?\d+)', line)

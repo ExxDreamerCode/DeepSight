@@ -1,15 +1,36 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from typing import Optional, Dict, List
 from pathlib import Path
-
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QScrollArea, QFrame, QSizePolicy, QPushButton)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QPixmap, QFont, QKeyEvent
-
 import chess
-
 from .models.game_state import GameState, AnalyzedMove
+
+def _classification_tooltip(move: AnalyzedMove) -> str:
+    if not move.classification:
+        return ""
+
+    lines = [move.san]
+    if move.classification_reason:
+        lines.append(f"{move.classification} — {move.classification_reason}")
+    else:
+        lines.append(move.classification)
+
+    if move.ep_loss is not None:
+        lines.append(f"Expected points lost: {move.ep_loss:.3f}")
+    if move.is_sacrifice:
+        lines.append(f"Material sacrificed (SEE {move.see})" if move.see is not None
+                     else "Material sacrificed")
+    if move.alternatives:
+        others = ", ".join(
+            f"{ev.move.uci()}({ev.score})" for ev in move.alternatives[:3]
+        )
+        lines.append(f"Alternatives: {others}")
+
+    return "\n".join(lines)
+
 
 class MoveCell(QFrame):
     clicked = pyqtSignal(int)
@@ -34,6 +55,7 @@ class MoveCell(QFrame):
         else:
             icon_label = IconLabel(move.classification)
             icon_label.setFixedSize(18, 18)
+            icon_label.setToolTip(_classification_tooltip(move))
             layout.addWidget(icon_label)
 
             move_label = QLabel(move.san)
@@ -44,7 +66,6 @@ class MoveCell(QFrame):
 
             ev = move.eval_after or move.eval_before
             if ev:
-
                 is_after = move.eval_after is not None
                 if is_after:
                     invert = move.player == chess.WHITE
@@ -90,6 +111,7 @@ class MoveCell(QFrame):
         if self.move is not None:
             self.clicked.emit(self.move_index)
 
+
 class MoveRow(QFrame):
     cell_clicked = pyqtSignal(int)
 
@@ -129,9 +151,9 @@ class MoveRow(QFrame):
         self.setFixedHeight(34)
 
     def select_cell(self, move_index: int):
-
         self.white_cell.set_selected(self.white_cell.move_index == move_index)
         self.black_cell.set_selected(self.black_cell.move_index == move_index)
+
 
 class IconLabel(QLabel):
     _icons: Dict[str, QPixmap] = {}
@@ -160,6 +182,7 @@ class IconLabel(QLabel):
                 pixmap = QPixmap(str(icon_file))
                 if not pixmap.isNull():
                     cls._icons[name] = pixmap
+
 
 class MoveListPanel(QScrollArea):
     move_selected = pyqtSignal(int)

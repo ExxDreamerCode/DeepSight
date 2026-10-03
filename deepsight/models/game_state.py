@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 if sys.getrecursionlimit() < 100000:
     sys.setrecursionlimit(100000)
 
@@ -18,6 +18,7 @@ class MoveEval:
     mate: Optional[int] = None
     depth: Optional[int] = None
     best_line: List[chess.Move] = field(default_factory=list)
+    multipv: int = 1
 
     @property
     def score(self) -> Optional[str]:
@@ -55,6 +56,22 @@ class AnalyzedMove:
     depth: int = 0
 
     is_book: bool = False
+
+    classification_reason: str = ""
+    ep_loss: Optional[float] = None
+    see: Optional[int] = None
+    is_sacrifice: bool = False
+    alternatives: List[MoveEval] = field(default_factory=list)
+
+    #: Identifies the position and engine settings this move was scored with,
+    #: so a later run can tell whether the stored result is still valid.
+    analysis_signature: Optional[str] = None
+
+    def has_analysis(self) -> bool:
+        return self.classification not in ("", "Unknown")
+
+    def is_analyzed_for(self, signature: str) -> bool:
+        return self.has_analysis() and self.analysis_signature == signature
 
 
 @dataclass

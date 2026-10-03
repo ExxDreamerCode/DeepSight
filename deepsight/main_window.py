@@ -449,6 +449,12 @@ class MainWindow(QMainWindow):
                                        use_nnue=self.input_panel.get_nnue())
         self.analysis.time_per_move = self.input_panel.get_time_per_move()
         self.analysis.depth = self.input_panel.get_depth()
+        self.analysis.skip_analyzed = self.input_panel.get_skip_analyzed()
+
+        pending = self.analysis.pending_move_count()
+        if pending < len(self.game_state.moves):
+            self._debug(f"{len(self.game_state.moves) - pending} move(s) already analyzed, "
+                        f"{pending} to go")
 
         self.progress_bar.setVisible(True)
         self.progress_bar.setMaximum(len(self.game_state.moves))
