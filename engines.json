@@ -1,0 +1,139 @@
+{
+  "engines": {
+    "ember": {
+      "version": "1.3.1",
+      "license": "MIT",
+      "releases": "https://github.com/ExxDreamerCode/Ember/releases/tag/V1.3.1"
+    },
+    "stockfish": {
+      "version": "18",
+      "license": "GPL-3.0-or-later",
+      "releases": "https://github.com/official-stockfish/Stockfish/releases/tag/sf_18"
+    }
+  },
+  "targets": [
+    {
+      "id": "linux-x86_64",
+      "runner": "ubuntu-24.04",
+      "engines": {
+        "ember": {
+          "url": "https://github.com/ExxDreamerCode/Ember/releases/download/V1.3.1/ember-1.3.1-9e015493-linux-amd64.tar.gz",
+          "asset": "ember-1.3.1-9e015493-linux-amd64.tar.gz",
+          "member": "ember-1.3.1-9e015493-linux-amd64/ember",
+          "sha256": "7c57131954e472b195bebea928ffae02af22fe966c6ba207db8ec7a263dd8dd1",
+          "install_as": "Engines/ember-1.3.1"
+        },
+        "stockfish": {
+          "url": "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-ubuntu-x86-64.tar",
+          "asset": "stockfish-ubuntu-x86-64.tar",
+          "member": "stockfish/stockfish-ubuntu-x86-64",
+          "sha256": "5c6f38b02a4da5f3ffe763f27da6c3e743eebefd92b50cb3661623b96696adff",
+          "install_as": "Engines/stockfish"
+        }
+      }
+    },
+    {
+      "id": "linux-arm64",
+      "runner": "ubuntu-24.04-arm",
+      "engines": {
+        "ember": {
+          "url": "https://github.com/ExxDreamerCode/Ember/releases/download/V1.3.1/ember-1.3.1-9e015493-linux-arm64.tar.gz",
+          "asset": "ember-1.3.1-9e015493-linux-arm64.tar.gz",
+          "member": "ember-1.3.1-9e015493-linux-arm64/ember",
+          "sha256": "299205c053495390fe02182a4733bb8cc22031159116025bd985648e4f05a7bd",
+          "install_as": "Engines/ember-1.3.1"
+        },
+        "stockfish": {
+          "build": {
+            "repo": "https://github.com/official-stockfish/Stockfish.git",
+            "tag": "sf_18",
+            "commit": "cb3d4ee9b47d0c5aae855b12379378ea1439675c",
+            "arch": "armv8",
+            "make": "profile-build",
+            "install_as": "Engines/stockfish"
+          }
+        }
+      }
+    },
+    {
+      "id": "macos-x86_64",
+      "runner": "macos-15-intel",
+      "engines": {
+        "ember": {
+          "url": "https://github.com/ExxDreamerCode/Ember/releases/download/V1.3.1/ember-1.3.1-9e015493-macos-amd64.tar.gz",
+          "asset": "ember-1.3.1-9e015493-macos-amd64.tar.gz",
+          "member": "ember-1.3.1-9e015493-macos-amd64/ember",
+          "sha256": "082bad39b32567e0220482808b6c926f9c6eada02d1344cfd77c245e77773754",
+          "install_as": "Engines/ember-1.3.1"
+        },
+        "stockfish": {
+          "url": "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-macos-x86-64.tar",
+          "asset": "stockfish-macos-x86-64.tar",
+          "member": "stockfish/stockfish-macos-x86-64",
+          "sha256": "e7d7a2bca13915419d41ac6cb8cedb123dd2ba1c39a22c574df7a2aa3f526592",
+          "install_as": "Engines/stockfish"
+        }
+      }
+    },
+    {
+      "id": "macos-arm64",
+      "runner": "macos-latest",
+      "engines": {
+        "ember": {
+          "url": "https://github.com/ExxDreamerCode/Ember/releases/download/V1.3.1/ember-1.3.1-9e015493-macos-arm64.tar.gz",
+          "asset": "ember-1.3.1-9e015493-macos-arm64.tar.gz",
+          "member": "ember-1.3.1-9e015493-macos-arm64/ember",
+          "sha256": "7843bd0e9843daeeec2b0db64c979fa33c2a44fea091806340c027448e6309ff",
+          "install_as": "Engines/ember-1.3.1"
+        },
+        "stockfish": {
+          "url": "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-macos-m1-apple-silicon.tar",
+          "asset": "stockfish-macos-m1-apple-silicon.tar",
+          "member": "stockfish/stockfish-macos-m1-apple-silicon",
+          "sha256": "4d77c4aa3ad9bd1ea8111f2ac5a4620fe7ebf998d6893bf828d49ccd579c8cb0",
+          "install_as": "Engines/stockfish"
+        }
+      }
+    },
+    {
+      "id": "windows-x86_64",
+      "runner": "windows-latest",
+      "engines": {
+        "ember": {
+          "url": "https://github.com/ExxDreamerCode/Ember/releases/download/V1.3.1/ember-1.3.1-9e015493-windows-amd64.zip",
+          "asset": "ember-1.3.1-9e015493-windows-amd64.zip",
+          "member": "ember.exe",
+          "sha256": "5dd936bc8a7c3ac2ad9468e6918dcb89e5d050c6f7d06475bf148c4d2a356eba",
+          "install_as": "Engines/ember-1.3.1.exe"
+        },
+        "stockfish": {
+          "url": "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-windows-x86-64.zip",
+          "asset": "stockfish-windows-x86-64.zip",
+          "member": "stockfish-windows-x86-64.exe",
+          "sha256": "40cc975817e7eee270b03f354810d20956df565420d320f6dd37d454dc81a139",
+          "install_as": "Engines/stockfish-windows-x86-64.exe"
+        }
+      }
+    },
+    {
+      "id": "windows-arm64",
+      "runner": "windows-11-arm",
+      "engines": {
+        "ember": {
+          "url": "https://github.com/ExxDreamerCode/Ember/releases/download/V1.3.1/ember-1.3.1-9e015493-windows-arm64.zip",
+          "asset": "ember-1.3.1-9e015493-windows-arm64.zip",
+          "member": "ember.exe",
+          "sha256": "1e5cc7046f2a6815b2f352be7a3d90579dcccd8c6859fad6e61de6ed44a255f8",
+          "install_as": "Engines/ember-1.3.1.exe"
+        },
+        "stockfish": {
+          "url": "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-windows-armv8.zip",
+          "asset": "stockfish-windows-armv8.zip",
+          "member": "stockfish-windows-armv8.exe",
+          "sha256": "7bc5880c11a58b2fdc4fcd606bf5cb593230026eb501a5a8865dc79fda5ea5fd",
+          "install_as": "Engines/stockfish.exe"
+        }
+      }
+    }
+  ]
+}

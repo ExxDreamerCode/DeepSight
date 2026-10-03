@@ -1,3 +1,4 @@
 *
 !.gitignore
 !download-engines.bat
+!fetch_engines.py
