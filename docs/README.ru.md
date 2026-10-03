@@ -35,7 +35,7 @@ English version: [../README.md](../README.md).
 
 ### Требования
 
-- Python 3.11+
+- Python 3.13+
 - Linux x86_64 для Nix-сборки текущей системы
 
 ### Зависимости

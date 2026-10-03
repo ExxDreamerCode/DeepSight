@@ -35,7 +35,7 @@ Russian version: [docs/README.ru.md](docs/README.ru.md).
 
 ### Requirements
 
-- Python 3.11+
+- Python 3.13+
 - Linux x86_64 for the Nix build of the current system
 
 ### Dependencies

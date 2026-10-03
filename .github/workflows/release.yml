@@ -143,9 +143,8 @@ jobs:
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
-        shell: pwsh
         run: |
-          tar.exe -a -c -f "DeepSight-${{ needs.version.outputs.version }}-${{ matrix.target }}.zip" -C dist DeepSight
+          python -c "import pathlib, zipfile; base = pathlib.Path('dist/DeepSight'); name = 'DeepSight-${{ needs.version.outputs.version }}-${{ matrix.target }}.zip'; archive = zipfile.ZipFile(name, 'w', zipfile.ZIP_DEFLATED, compresslevel=1); [archive.write(path, pathlib.Path('DeepSight') / path.relative_to(base)) for path in sorted(base.rglob('*')) if path.is_file()]; archive.close(); print(f'{name} written')"
 
       - name: Record the provenance of the artifact
         uses: actions/attest-build-provenance@v4
