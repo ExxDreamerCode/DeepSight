@@ -1,14 +1,33 @@
-﻿import sys
+import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtGui import QColor, QPalette
-from deepsight.main_window import MainWindow
+from deepsight import __version__
+from deepsight.self_check import build_report, summarize, write_report
 
 
-def configure_dark_palette(app: QApplication):
+def self_check_target(argv):
+    index = argv.index("--self-check")
+    if index + 1 < len(argv) and not argv[index + 1].startswith("-"):
+        return argv[index + 1]
+    return None
+
+
+def run_self_check(argv) -> int:
+    report = build_report()
+
+    target = self_check_target(argv)
+    if target:
+        write_report(report, target)
+
+    print(summarize(report))
+    return 0 if report["ok"] else 1
+
+
+def configure_dark_palette(app):
+    from PyQt6.QtGui import QColor, QPalette
+
     palette = QPalette()
     palette.setColor(QPalette.ColorRole.Window, QColor(26, 26, 26))
     palette.setColor(QPalette.ColorRole.WindowText, QColor(221, 221, 221))
@@ -28,8 +47,19 @@ def configure_dark_palette(app: QApplication):
 
 
 def main():
+    if "--version" in sys.argv:
+        print(f"DeepSight {__version__}")
+        sys.exit(0)
+
+    if "--self-check" in sys.argv:
+        sys.exit(run_self_check(sys.argv))
+
+    from PyQt6.QtWidgets import QApplication
+    from deepsight.main_window import MainWindow
+
     app = QApplication(sys.argv)
     app.setApplicationName("DeepSight")
+    app.setApplicationVersion(__version__)
 
     app.setStyle("Fusion")
     configure_dark_palette(app)

@@ -151,6 +151,30 @@ class MainWindow(QMainWindow):
         a.triggered.connect(self._stop_analysis)
         am.addAction(a)
 
+        hm = mb.addMenu("Help")
+        a = QAction("About DeepSight", self)
+        a.triggered.connect(self._show_about)
+        hm.addAction(a)
+
+    def _show_about(self):
+        from deepsight.self_check import build_report
+
+        report = build_report(handshake=False)
+        engines = "<br>".join(
+            f"{name.capitalize()} {engine['version']} - "
+            f"{'found' if engine['present'] else 'not found'}"
+            for name, engine in report["engines"].items()
+        )
+        QMessageBox.about(
+            self,
+            "About DeepSight",
+            f"<b>DeepSight {report['version']}</b><br><br>"
+            f"Chess analysis with the engines built in.<br><br>"
+            f"{engines}<br><br>"
+            f"Python {report['python']}, Qt {report['qt']}<br>"
+            f"{report['platform']} {report['machine']}",
+        )
+
     def _connect_signals(self):
         self.input_panel.pgn_loaded.connect(self._on_pgn_loaded)
         self.input_panel.fen_loaded.connect(self._on_fen_loaded)
