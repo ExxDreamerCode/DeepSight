@@ -195,6 +195,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     print(f"target: {target['id']}")
 
+    try:
+        own = target_id_for(platform.system(), platform.machine())
+    except SystemExit:
+        own = None
+    if own is not None and own != target["id"]:
+        print(
+            f"note: these are {target['id']} engines and this machine is {own}, "
+            f"so they will not run here"
+        )
+
     for path in fetch_target(target, arguments.jobs, arguments.force):
         print(f"ready: {path}")
 

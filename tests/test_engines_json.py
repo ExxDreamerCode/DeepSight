@@ -245,3 +245,27 @@ def test_the_nix_flake_pins_the_same_linux_engines(pins):
     for name, entry in linux.items():
         digest = base64.b64encode(bytes.fromhex(entry["sha256"])).decode()
         assert f"sha256-{digest}" in text, f"flake.nix pins a different {name} digest"
+
+
+def test_fetching_for_another_platform_warns_that_they_will_not_run(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(fetch_engines, "ROOT", tmp_path)
+    monkeypatch.setattr(fetch_engines, "fetch_target", lambda target, jobs, force=False: [])
+    monkeypatch.setattr(fetch_engines.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(fetch_engines.platform, "machine", lambda: "x86_64")
+
+    assert fetch_engines.main(["--target", "linux-arm64"]) == 0
+
+    printed = capsys.readouterr().out
+
+    assert "these are linux-arm64 engines" in printed
+    assert "this machine is linux-x86_64" in printed
+
+
+def test_fetching_for_this_machine_stays_quiet(monkeypatch, capsys):
+    monkeypatch.setattr(fetch_engines, "fetch_target", lambda target, jobs, force=False: [])
+    monkeypatch.setattr(fetch_engines.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(fetch_engines.platform, "machine", lambda: "aarch64")
+
+    assert fetch_engines.main(["--target", "linux-arm64"]) == 0
+
+    assert "note:" not in capsys.readouterr().out
