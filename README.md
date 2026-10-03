@@ -4,7 +4,6 @@
 
 Russian version: [docs/README.ru.md](docs/README.ru.md).
 
-![Python](https://img.shields.io/badge/python-3.13-blue)
 ![PyQt6](https://img.shields.io/badge/PyQt6-6.5+-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 [![CI](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml/badge.svg)](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml)
