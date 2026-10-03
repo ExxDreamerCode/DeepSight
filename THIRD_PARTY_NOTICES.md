@@ -2,7 +2,9 @@
 
 DeepSight's own code is distributed under the MIT license (see [LICENSE](LICENSE)). The builds
 published from this repository additionally contain the third-party components below - two chess
-engines and two Python libraries - each of which keeps its own license.
+engines and two Python libraries - each of which keeps its own license. One part of DeepSight is
+modelled on someone else's published system rather than built from third-party code: the move
+classification, covered in the last section.
 
 ## Stockfish
 
@@ -52,6 +54,24 @@ together.
 
 Unlike the engines, the two Python libraries are imported rather than run as separate processes, so
 they are part of the application itself and their licenses travel with any build that bundles them.
+
+## Chess.com move classification
+
+- **What is borrowed:** the label set from Chess.com's Game Review - Brilliant, Great, Best,
+  Excellent, Good, Book, Inaccuracy, Miss, Mistake, Blunder - together with the expected-points
+  scale those labels are measured against (1.00 always winning, 0.50 equal, 0.00 always losing)
+- **Where it is described:** https://support.chess.com/en/articles/8572705-how-are-moves-classified-what-is-a-blunder-or-brilliant-etc
+- **What is *not* borrowed:** no Chess.com code, data or service is used. DeepSight bundles no
+  Chess.com software and never contacts Chess.com. The classifier in
+  `deepsight/move_classifier.py` is an independent implementation written for this project: it
+  reuses the published label names and the published expected-points bands, and computes everything
+  else - evaluations, expected points, sacrifices, alternative lines - from our own engine runs.
+- **Trademarks:** Chess.com and Game Review are trademarks of Chess.com, LLC. DeepSight is not
+  affiliated with, endorsed by or sponsored by Chess.com.
+
+Chess.com does not publish its exact centipawn-to-expected-points conversion, its Brilliant and
+Great detection rules, or its "only move" logic. DeepSight approximates those with the logistic
+curve used by Lichess and with its own static-exchange and MultiPV rules.
 
 ## Notes for distributors
 

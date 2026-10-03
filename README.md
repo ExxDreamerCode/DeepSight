@@ -19,8 +19,9 @@ Russian version: [docs/README.ru.md](docs/README.ru.md).
 - **Built-in engines** — Ember and Stockfish come from the Nix build, but are not stored in the repository
 - **External engines** — connect any UCI-compatible engine
 - **Full game analysis** — every move analysed automatically and scored in centipawns or mate
+- **Incremental re-analysis** — moves that already have a result are kept, so after editing the end of a game only the affected moves are evaluated again
 - **Live evaluation** — a fast score for the current position, without running a full analysis
-- **Move classification** — book moves, mistakes, blunders and the rest are recognised automatically
+- **Move classification** — Game Review labels (Brilliant, Great, Best, Excellent, Good, Book, Inaccuracy, Mistake, Miss, Blunder, Forced) driven by an expected-points model that accounts for how lost or won the position already is.
 - **Game navigation** — arrow keys step through the moves, Home/End jump to either end
 - **Evaluation bar** — a visual read on who is ahead
 - **Best-move arrow** — the engine's suggested move drawn on the board
@@ -41,6 +42,7 @@ Russian version: [docs/README.ru.md](docs/README.ru.md).
 ```
 PyQt6>=6.5
 python-chess>=1.999
+pytest>=7.0
 ```
 
 ### Installing from source
@@ -99,6 +101,11 @@ The finished `.exe` appears in `dist/`. The PyInstaller spec embeds the engines,
    - Set the time per move and the analysis depth
    - Press "Start Analysis"
    - Progress is shown in the status bar
+   - "Skip analyzed moves" (on by default) keeps the result already stored for every move, so
+     running the analysis again only evaluates what has no result yet, or what changed. Turn it
+     off to score the whole game from scratch. Results live in memory for the current session and
+     are dropped when a game is loaded again; changing the engine, the depth, the time per move or
+     the number of MultiPV lines also invalidates them.
 
 5. **Navigation:**
    - ← / → — step through the moves
@@ -148,6 +155,24 @@ The `Debug` menu offers:
 2. Install the executable into `Engines/` inside the Linux Nix build
 3. Add an entry to `BUILTIN_ENGINES` in `engine_registry.py`
 4. Set the protocol in `get_engine_protocol()` if needed
+
+### Tests
+
+```bash
+pip install -r requirements.txt
+python -m pytest
+```
+
+The fast suite covers the expected-points model, static exchange evaluation, the
+move classifier, the opening book and the engine's MultiPV plumbing. It needs no
+engine binary.
+
+The end-to-end suite runs a whole game through a real UCI engine and is opt-in,
+because it requires one of the engines in `Engines/`:
+
+```bash
+DEEPSIGHT_RUN_ENGINE_TESTS=1 python -m pytest
+```
 
 ---
 
