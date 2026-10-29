@@ -570,7 +570,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Quick evaluate error (non-critical): {e}")
 
-    def _on_quick_eval(self, ev, bm, side):
+    def _on_quick_eval(self, ev, bm, side, fen):
         if self.quick_eval is None:
             return
 
@@ -578,7 +578,7 @@ class MainWindow(QMainWindow):
             if self.analysis is not None:
                 return
 
-        if self.quick_eval.is_stale(self.game_state.board):
+        if fen is not None and fen != self.game_state.board.fen():
             return
 
         self._last_live_eval = ev
@@ -662,9 +662,13 @@ class MainWindow(QMainWindow):
         self._debug(f"ANALYSIS ERROR: {msg}")
         QMessageBox.warning(self, "Analysis Error", msg)
 
-    def _on_live_update(self, ev: MoveEval, bm: Optional[chess.Move], side: chess.Color):
+    def _on_live_update(self, ev: MoveEval, bm: Optional[chess.Move], side: chess.Color,
+                        fen: str = ""):
         if self._skip_live:
             self._skip_live = False
+            return
+
+        if fen and fen != self.game_state.board.fen():
             return
 
         score_cp = ev.score_cp

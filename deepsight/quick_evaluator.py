@@ -1,17 +1,13 @@
 from __future__ import annotations
 import time
-from typing import Optional
-
-from PyQt6.QtCore import QObject, pyqtSignal, QTimer
-
 import chess
-
+from typing import Optional
+from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 from .engine_manager import EngineManager, EngineProtocol
 from .models.game_state import MoveEval
 
-
 class QuickEvaluator(QObject):
-    eval_ready = pyqtSignal(object, object, object)
+    eval_ready = pyqtSignal(object, object, object, str)
     engine_output = pyqtSignal(str)
 
     def __init__(self, engine_path: str = "",
@@ -41,6 +37,7 @@ class QuickEvaluator(QObject):
         self._pending_gen = 0
         self._pending_board: Optional[chess.Board] = None
         self._infinite = False
+        self._discard_polls: int = 0
 
     def ensure_started(self) -> bool:
         if self._engine is not None and self._engine._ready:
@@ -64,6 +61,7 @@ class QuickEvaluator(QObject):
         self._awaiting_stop = False
         self._infinite = infinite
         self._start_time = time.time()
+        self._discard_polls = 3
 
     def evaluate(self, board: chess.Board):
         if not self.ensure_started():
@@ -133,6 +131,10 @@ class QuickEvaluator(QObject):
             return
 
         lines = self._engine.get_output()
+
+        if self._discard_polls > 0:
+            self._discard_polls -= 1
+            lines = []
 
         if self._awaiting_stop:
             bestmove_found = False
@@ -222,7 +224,8 @@ class QuickEvaluator(QObject):
                 )
 
                 turn = self._board_turn
-                self.eval_ready.emit(ev, pv_to_emit, turn)
+                fen = self._fen
+                self.eval_ready.emit(ev, pv_to_emit, turn, fen)
 
         if timeout:
             self._emit_final()
@@ -238,7 +241,8 @@ class QuickEvaluator(QObject):
                 depth=self._last_depth
             )
             turn = self._board_turn
-            self.eval_ready.emit(ev, pv_to_emit, turn)
+            fen = self._fen
+            self.eval_ready.emit(ev, pv_to_emit, turn, fen)
 
     def _finish(self):
         self._running = False

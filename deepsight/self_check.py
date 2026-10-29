@@ -1,12 +1,10 @@
 from __future__ import annotations
-
 import json
 import os
 import platform
 import subprocess
 import sys
 from typing import Any, Dict, Optional
-
 from . import __version__
 from .engine_registry import BUILTIN_ENGINE_VERSIONS, get_data_path, get_engine_path
 
@@ -22,7 +20,6 @@ _DATA_DIRS = {
     "pieces": "Images/Pieces",
     "move_icons": "Images/Moves",
 }
-
 
 def _count_data_files(relative_path: str) -> int:
     path = get_data_path(relative_path)

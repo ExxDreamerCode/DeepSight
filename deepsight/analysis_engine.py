@@ -1,10 +1,10 @@
 from __future__ import annotations
 import threading
 import time
+import chess
 from typing import Optional, Callable, List, Dict, Any
 from enum import Enum
 from PyQt6.QtCore import QObject, pyqtSignal
-import chess
 from .engine_manager import EngineManager, EngineProtocol
 from .models.game_state import GameState, MoveEval, AnalyzedMove
 from .classification_types import AlternativeLine
@@ -19,7 +19,7 @@ class AnalysisMode(Enum):
 class AnalysisEngine(QObject):
     progress_changed = pyqtSignal(int, int)
     move_analyzed = pyqtSignal(object)
-    live_updated = pyqtSignal(object, object, object)
+    live_updated = pyqtSignal(object, object, object, str)
     analysis_complete = pyqtSignal()
     analysis_error = pyqtSignal(str)
     engine_output = pyqtSignal(str)
@@ -47,6 +47,9 @@ class AnalysisEngine(QObject):
         self._stop_event = threading.Event()
         self._live_eval: Optional[MoveEval] = None
         self._live_best_move: Optional[chess.Move] = None
+        self._live_fen: Optional[str] = None
+        self._live_side: chess.Color = chess.WHITE
+        self._discard_polls: int = 0
         self.analyzed_move_count: int = 0
         self.skipped_move_count: int = 0
 
@@ -146,6 +149,9 @@ class AnalysisEngine(QObject):
         time.sleep(0.05)
         self.engine.set_position(self.game_state.board)
         self.engine.start_analysis(infinite=True)
+        self._live_fen = self.game_state.board.fen()
+        self._live_side = self.game_state.board.turn
+        self._discard_polls = 3
 
     def settings_signature(self) -> str:
         return "|".join((
@@ -285,7 +291,9 @@ class AnalysisEngine(QObject):
                                     best_move = bm
 
                             if rank == 1:
-                                self.live_updated.emit(eval_data, best_move, move_data.player)
+                                self.live_updated.emit(
+                                    eval_data, best_move, move_data.player, board_before.fen()
+                                )
 
                     if got_bestmove or self._stop_event.is_set():
                         break
@@ -400,6 +408,9 @@ class AnalysisEngine(QObject):
         try:
             self.engine.set_position(self.game_state.board)
             self.engine.start_analysis(infinite=True)
+            self._live_fen = self.game_state.board.fen()
+            self._live_side = self.game_state.board.turn
+            self._discard_polls = 3
 
             while self._running and not self._stop_event.is_set():
                 if self._paused:
@@ -407,13 +418,16 @@ class AnalysisEngine(QObject):
                     continue
 
                 lines = self.engine.get_output()
+                if self._discard_polls > 0:
+                    self._discard_polls -= 1
+                    lines = []
                 for line in lines:
                     self.engine_output.emit(line)
                     eval_data, best_move, is_bestmove = self._parse_uci_line(line)
                     if eval_data:
                         self._live_eval = eval_data
                         self._live_best_move = best_move
-                        self.live_updated.emit(eval_data, best_move, self.game_state.board.turn)
+                        self.live_updated.emit(eval_data, best_move, self._live_side, self._live_fen)
 
                 time.sleep(0.05)
 
