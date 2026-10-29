@@ -1,4 +1,4 @@
-from typing import Optional
+﻿from typing import Optional
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
                              QStatusBar, QLabel, QProgressBar,
@@ -261,9 +261,9 @@ class MainWindow(QMainWindow):
                         self.eval_bar.set_eval(mate=-1, depth=0)
                     else:
                         self.eval_bar.set_eval(mate=1, depth=0)
+                elif board.is_stalemate() or board.is_insufficient_material() or board.can_claim_draw():
+                    self.eval_bar.set_eval(score_cp=0.0, depth=0)
                 else:
-                    # Keep previous eval on the bar until the new engine
-                    # result arrives; cosmetics for smooth position switching.
                     pass
 
             if cur.eval_before or cur.eval_after:
@@ -516,6 +516,9 @@ class MainWindow(QMainWindow):
         try:
             with QMutexLocker(self._eval_mutex):
                 if self._quick_eval_pending:
+                    if self._quick_eval_timer:
+                        self._quick_eval_timer.stop()
+                    self._quick_eval_timer.start(100)
                     return
                 self._quick_eval_pending = True
 
@@ -552,6 +555,9 @@ class MainWindow(QMainWindow):
                     self.eval_bar.set_eval(mate=-1, depth=0)
                 else:
                     self.eval_bar.set_eval(mate=1, depth=0)
+                return
+            if board.is_stalemate() or board.is_insufficient_material() or board.can_claim_draw():
+                self.eval_bar.set_eval(score_cp=0.0, depth=0)
                 return
 
 

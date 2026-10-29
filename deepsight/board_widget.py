@@ -1,12 +1,9 @@
 from __future__ import annotations
 from typing import Optional, List, Tuple, Dict
-
+import chess
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QSize
 from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QPixmap, QFont
-
-import chess
-
 from .models.game_state import GameState, AnalyzedMove
 
 LIGHT_SQ = QColor(240, 217, 181)

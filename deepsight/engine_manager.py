@@ -4,14 +4,13 @@ import threading
 import time
 import re
 import os
+import chess
 from typing import Optional, List, Dict
 from enum import Enum
-import chess
 
 class EngineProtocol(Enum):
     UCI = "uci"
     XBOARD = "xboard"
-
 
 class EngineManager:
     def __init__(self, engine_path: str, protocol: EngineProtocol = EngineProtocol.UCI):

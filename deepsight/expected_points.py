@@ -24,7 +24,6 @@ def rating_slope_scale(rating: Optional[float]) -> float:
 def slope(rating: Optional[float] = None) -> float:
     return BASE_SLOPE * rating_slope_scale(rating)
 
-
 def cp_to_expected_points(cp: float, rating: Optional[float] = None) -> float:
     x = slope(rating) * float(cp)
     if x >= _EXP_LIMIT:
@@ -33,10 +32,8 @@ def cp_to_expected_points(cp: float, rating: Optional[float] = None) -> float:
         return MATE_LOSS_EP
     return 1.0 / (1.0 + math.exp(-x))
 
-
 def mate_to_expected_points(mate: int) -> float:
     return MATE_WIN_EP if mate > 0 else MATE_LOSS_EP
-
 
 @dataclass(frozen=True)
 class Score:
@@ -107,7 +104,6 @@ class Score:
         if hasattr(value, "score_cp") or hasattr(value, "mate"):
             return cls.from_move_eval(value)
         return None
-
 
 def expected_points_loss(ep_before: Optional[float],
                          ep_after: Optional[float]) -> Optional[float]:

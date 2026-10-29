@@ -7,9 +7,7 @@ import tempfile
 import atexit
 from typing import Optional, Dict, Tuple
 from pathlib import Path
-
 from .engine_manager import EngineProtocol
-
 
 # Versions of the engines the builds ship. Bumping one means bumping the pins in
 # Engines/download-engines.bat and flake.nix, the file names in both READMEs and
@@ -19,11 +17,9 @@ BUILTIN_ENGINE_VERSIONS: Dict[str, str] = {
     "stockfish": "18",
 }
 
-
 def _with_version(path: str, version: str) -> str:
     stem, dot, ext = path.partition(".")
     return f"{stem}-{version}{dot}{ext}"
-
 
 _EMBER_FILES = ("Engines/ember.exe", "Engines/Ember.exe", "Engines/ember")
 
@@ -45,7 +41,6 @@ BUILTIN_ENGINES: Dict[str, Tuple[str, ...]] = {
 _temp_dir: Optional[str] = None
 _extracted: Dict[str, str] = {}
 
-
 def _cleanup():
     global _temp_dir
     if _temp_dir and os.path.isdir(_temp_dir):
@@ -56,9 +51,7 @@ def _cleanup():
     _temp_dir = None
     _extracted.clear()
 
-
 atexit.register(_cleanup)
-
 
 def get_data_path(relative_path: str) -> str:
     candidates = []
@@ -81,14 +74,12 @@ def get_data_path(relative_path: str) -> str:
 
     return str(candidates[0] / relative_path)
 
-
 def _resolve_existing_data_path(relative_paths: Tuple[str, ...]) -> Optional[str]:
     for rel_path in relative_paths:
         path = get_data_path(rel_path)
         if os.path.isfile(path):
             return path
     return None
-
 
 def extract_builtin_engine(name: str) -> Optional[str]:
     global _temp_dir
@@ -120,10 +111,8 @@ def extract_builtin_engine(name: str) -> Optional[str]:
         print(f"Failed to extract engine {name}: {e}")
         return None
 
-
 def get_builtin_engine_path(name: str) -> Optional[str]:
     return extract_builtin_engine(name)
-
 
 def get_engine_path(engine_type: str,
                     custom_path: Optional[str] = None) -> Optional[str]:
@@ -140,16 +129,13 @@ def get_engine_path(engine_type: str,
     else:
         return None
 
-
 def get_engine_protocol(engine_type: str,
                         external_protocol: EngineProtocol = EngineProtocol.UCI) -> EngineProtocol:
     return EngineProtocol.UCI
 
-
 def list_engine_types() -> list:
     engines = ["ember", "stockfish", "external"]
     return engines
-
 
 def get_engine_short_name(engine_type: str) -> str:
     engine_type = engine_type.lower()
@@ -161,7 +147,6 @@ def get_engine_short_name(engine_type: str) -> str:
     name = names.get(engine_type, engine_type)
     version = BUILTIN_ENGINE_VERSIONS.get(engine_type)
     return f"{name} {version}" if version else name
-
 
 def get_engine_display_name(engine_type: str) -> str:
     engine_type = engine_type.lower()

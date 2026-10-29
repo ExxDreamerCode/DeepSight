@@ -61,7 +61,7 @@ class QuickEvaluator(QObject):
         self._awaiting_stop = False
         self._infinite = infinite
         self._start_time = time.time()
-        self._discard_polls = 3
+        self._discard_polls = 1
 
     def evaluate(self, board: chess.Board):
         if not self.ensure_started():
@@ -107,7 +107,6 @@ class QuickEvaluator(QObject):
         self._timer.start(50)
 
     def evaluate_infinite(self, board: chess.Board):
-        """Start infinite (live) analysis. Runs until stop() is called."""
         if not self.ensure_started():
             return
 
@@ -132,7 +131,8 @@ class QuickEvaluator(QObject):
 
         lines = self._engine.get_output()
 
-        if self._discard_polls > 0:
+        discarding = self._discard_polls > 0
+        if discarding:
             self._discard_polls -= 1
             lines = []
 
@@ -178,7 +178,8 @@ class QuickEvaluator(QObject):
                         self._last_pv = bm
                     except:
                         pass
-                self._emit_final()
+                if not discarding:
+                    self._emit_final()
                 if self._infinite:
                     if self._engine and self._fen is not None:
                         try:

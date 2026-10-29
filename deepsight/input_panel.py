@@ -1,16 +1,13 @@
 from __future__ import annotations
 from typing import Optional, Callable
 from pathlib import Path
-
+import chess
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                              QLabel, QTextEdit, QComboBox, QFileDialog,
                              QLineEdit, QGroupBox, QFormLayout, QSpinBox,
                              QDoubleSpinBox, QMessageBox, QRadioButton, QButtonGroup, QCheckBox)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
-
-import chess
-
 from .engine_manager import EngineProtocol
 from .engine_registry import list_engine_types, get_engine_display_name, get_engine_short_name
 from .models.game_state import GameState

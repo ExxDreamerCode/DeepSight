@@ -15,7 +15,6 @@ class AnalysisMode(Enum):
     FIXED = "fixed"
     LIVE = "live"
 
-
 class AnalysisEngine(QObject):
     progress_changed = pyqtSignal(int, int)
     move_analyzed = pyqtSignal(object)
@@ -410,7 +409,7 @@ class AnalysisEngine(QObject):
             self.engine.start_analysis(infinite=True)
             self._live_fen = self.game_state.board.fen()
             self._live_side = self.game_state.board.turn
-            self._discard_polls = 3
+            self._discard_polls = 1
 
             while self._running and not self._stop_event.is_set():
                 if self._paused:

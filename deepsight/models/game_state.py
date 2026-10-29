@@ -1,15 +1,11 @@
-import sys
-if sys.getrecursionlimit() < 100000:
-    sys.setrecursionlimit(100000)
-
-from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+﻿import sys
 import chess
 import chess.pgn
 import io
+from dataclasses import dataclass, field
+from typing import Optional, List, Dict, Any
 
 STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-
 
 @dataclass
 class MoveEval:

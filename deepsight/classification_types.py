@@ -39,7 +39,6 @@ NEGATIVE_LABELS = (
     MoveClassification.BLUNDER.value,
 )
 
-
 @dataclass
 class ClassificationConfig:
     rating: Optional[int] = None
@@ -79,7 +78,6 @@ class ClassificationConfig:
             return int(self.sacrifice_cp)
         return sacrifice_threshold_for_rating(self.rating)
 
-
 @dataclass
 class AlternativeLine:
     move: chess.Move
@@ -91,7 +89,6 @@ class AlternativeLine:
     @property
     def is_sacrifice(self) -> bool:
         return self.see < 0
-
 
 @dataclass
 class ClassificationResult:

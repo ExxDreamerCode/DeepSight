@@ -56,7 +56,6 @@ def _handshake(path: str):
             return True, line[len("id name"):].strip()
     return True, ""
 
-
 def engine_report(engine_type: str, handshake: bool = True) -> Dict[str, Any]:
     path = get_engine_path(engine_type)
     report: Dict[str, Any] = {
@@ -100,15 +99,12 @@ def build_report(handshake: bool = True) -> Dict[str, Any]:
     report["ok"] = engines_ok and data_ok
     return report
 
-
 def render_report(report: Dict[str, Any]) -> str:
     return json.dumps(report, indent=2, sort_keys=True)
-
 
 def write_report(report: Dict[str, Any], target: str) -> None:
     with open(target, "w", encoding="utf-8") as handle:
         handle.write(render_report(report) + "\n")
-
 
 def summarize(report: Dict[str, Any]) -> str:
     engines = ", ".join(
