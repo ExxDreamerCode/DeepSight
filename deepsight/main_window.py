@@ -262,7 +262,9 @@ class MainWindow(QMainWindow):
                     else:
                         self.eval_bar.set_eval(mate=1, depth=0)
                 else:
-                    self.eval_bar.clear()
+                    # Keep previous eval on the bar until the new engine
+                    # result arrives; cosmetics for smooth position switching.
+                    pass
 
             if cur.eval_before or cur.eval_after:
                 if cur.classification:
