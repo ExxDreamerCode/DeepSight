@@ -112,56 +112,53 @@ def _make_qe(app) -> "QuickEvaluator":
     return qe
 
 
-def test_quick_eval_poll_discards_stale_output_after_restart(app):
+def test_quick_eval_mate_in_one_from_first_burst_after_position_change(app):
     qe = _make_qe(app)
-    qe._discard_polls = 3
+    qe._discard_polls = 1
+    qe._fen = BLACK_TO_MOVE
+
+    received = []
+    qe.eval_ready.connect(lambda ev, bm, side, fen: received.append((ev.mate, ev.depth)))
+
+    qe._engine.stdout_buffer = ["info depth 1 score mate 1 pv h5f7", "info depth 2 score mate 1 pv h5f7"]
+    qe._poll()
+    app.processEvents()
+
+    assert received == [(1, 1), (1, 2)]
+
+
+def test_quick_eval_discards_stale_cp_after_position_change(app):
+    qe = _make_qe(app)
+    qe._discard_polls = 1
+    qe._fen = BLACK_TO_MOVE
 
     emitted = []
-    qe.eval_ready.connect(lambda ev, bm, side, fen: emitted.append((ev, side, fen)))
+    qe.eval_ready.connect(lambda ev, bm, side, fen: emitted.append((ev.score_cp, ev.mate)))
 
-    qe._engine.stdout_buffer = ["info depth 10 score cp 100 pv e2e4", "bestmove e2e4"]
+    qe._engine.stdout_buffer = ["info depth 10 score cp 100 pv e2e4"]
     qe._poll()
     app.processEvents()
 
     assert emitted == []
-    assert qe._discard_polls == 2
 
 
-def test_quick_eval_poll_processes_fresh_output_after_discards(app):
+def test_quick_eval_applies_output_every_poll(app):
     qe = _make_qe(app)
-    qe._discard_polls = 0
 
     received = []
-    qe.eval_ready.connect(lambda ev, bm, side, fen: received.append((ev.score_cp, side, fen)))
-
-    qe._engine.stdout_buffer = ["info depth 10 score cp 50 pv d2d4"]
-    qe._poll()
-    app.processEvents()
-
-    assert len(received) == 1
-    assert received[0] == (50, chess.WHITE, WHITE_TO_MOVE)
-
-
-def test_quick_eval_poll_discard_decrements_per_cycle(app):
-    qe = _make_qe(app)
-    qe._discard_polls = 2
-
-    emitted = []
-    qe.eval_ready.connect(lambda ev, bm, side, fen: emitted.append(ev))
+    qe.eval_ready.connect(lambda ev, bm, side, fen: received.append(ev.score_cp))
 
     qe._engine.stdout_buffer = ["info depth 10 score cp 100 pv e2e4"]
     qe._poll()
     qe._engine.stdout_buffer = ["info depth 11 score cp 200 pv d2d4"]
     qe._poll()
     app.processEvents()
-    assert emitted == []
-    assert qe._discard_polls == 0
+    assert received == [100, 200]
 
-    received = []
     qe.eval_ready.disconnect()
     qe.eval_ready.connect(lambda ev, bm, side, fen: received.append(ev.score_cp))
     qe._engine.stdout_buffer = ["info depth 10 score cp 75 pv d2d4"]
     qe._poll()
     app.processEvents()
-    assert received == [75]
+    assert received == [100, 200, 75]
 

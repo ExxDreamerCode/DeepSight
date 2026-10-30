@@ -55,13 +55,13 @@ class QuickEvaluator(QObject):
         else:
             self._engine.start_analysis(movetime=self._movetime_ms)
         self._board_turn = board.turn
+        self._discard_polls = 1 if (self._fen is not None and self._fen != board.fen()) else 0
         self._fen = board.fen()
         self._running_generation = gen
         self._running = True
         self._awaiting_stop = False
         self._infinite = infinite
         self._start_time = time.time()
-        self._discard_polls = 1
 
     def evaluate(self, board: chess.Board):
         if not self.ensure_started():
@@ -131,10 +131,9 @@ class QuickEvaluator(QObject):
 
         lines = self._engine.get_output()
 
-        discarding = self._discard_polls > 0
-        if discarding:
+        if self._discard_polls > 0:
             self._discard_polls -= 1
-            lines = []
+            lines = [l for l in lines if "score mate" in l]
 
         if self._awaiting_stop:
             bestmove_found = False
@@ -178,8 +177,7 @@ class QuickEvaluator(QObject):
                         self._last_pv = bm
                     except:
                         pass
-                if not discarding:
-                    self._emit_final()
+                self._emit_final()
                 if self._infinite:
                     if self._engine and self._fen is not None:
                         try:
