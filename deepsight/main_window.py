@@ -370,7 +370,6 @@ class MainWindow(QMainWindow):
             select_index=self.game_state.current_move_index,
             scroll=False
         )
-        self.eval_bar.clear()
         self._skip_live = True
 
         self.status_label.setText(f"Move {len(self.game_state.moves)}: {am.san}")
