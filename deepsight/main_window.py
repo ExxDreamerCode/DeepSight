@@ -1,4 +1,4 @@
-﻿from typing import Optional
+from typing import Optional
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
                              QStatusBar, QLabel, QProgressBar,
@@ -330,7 +330,8 @@ class MainWindow(QMainWindow):
             self.board.update()
             self.eval_bar.clear()
             self.move_list.refresh()
-            self.status_label.setText(f"Loaded PGN: {len(self.game_state.moves)} moves")
+            full_moves = self.game_state.moves[-1].move_number if self.game_state.moves else 0
+            self.status_label.setText(f"Loaded PGN: {full_moves} moves")
             self._quick_evaluate()
         else:
             QMessageBox.warning(self, "Error", "Failed to parse PGN")
@@ -610,7 +611,9 @@ class MainWindow(QMainWindow):
             display = f"#{ev.mate}"
         else:
             display = "?"
-        self.status_label.setText(f"Move {len(self.game_state.moves)}: {display} (depth={ev.depth})")
+
+        if self.game_state.current_move:
+            self.status_label.setText(f"Move {self.game_state.current_move.move_number}: {display} (depth={ev.depth})")
 
     def _stop_quick_eval(self, hard: bool = False):
         with QMutexLocker(self._eval_mutex):
