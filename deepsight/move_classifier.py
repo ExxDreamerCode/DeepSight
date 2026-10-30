@@ -188,6 +188,7 @@ class MoveClassifier:
             return self._finish(result, MoveClassification.BOOK, "opening book")
 
         if ep_loss is None:
+            result.ep_loss = 0.0
             if is_best:
                 return self._finish(result, MoveClassification.BEST, "engine's top move")
             if best_move is None:
