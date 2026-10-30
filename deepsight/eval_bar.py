@@ -132,6 +132,8 @@ class EvalBar(QWidget):
             return f"#{'-' if self._mate < 0 else ''}{abs(self._mate)}"
 
         if self._score is not None:
+            if self._score == 0:
+                return "0.00"
             sign = "+" if self._score > 0 else ""
             return f"{sign}{self._score:.2f}"
 

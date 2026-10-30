@@ -162,7 +162,6 @@ def test_quick_eval_applies_output_every_poll(app):
     app.processEvents()
     assert received == [100, 200, 75]
 
-
 def test_quick_eval_shows_stalemate_cp_zero_after_position_change(app):
     qe = _make_qe(app)
     qe._discard_polls = 1
@@ -183,4 +182,18 @@ def test_quick_eval_shows_stalemate_cp_zero_after_position_change(app):
     assert emitted == [
         (0.0, None, 1, chess.Move.from_uci("b6f2"))
     ]
+
+
+def test_eval_bar_zero_score_has_no_minus_sign(window, app):
+    window.eval_bar.set_eval(score_cp=0.0, depth=0)
+    app.processEvents()
+    assert window.eval_bar._eval_text() == "0.00"
+
+    window.eval_bar.set_eval(score_cp=-0.0, depth=0)
+    app.processEvents()
+    assert window.eval_bar._eval_text() == "0.00"
+
+    window.eval_bar.set_eval(score_cp=-50.0, depth=0)
+    app.processEvents()
+    assert window.eval_bar._eval_text() == "-0.50"
 
