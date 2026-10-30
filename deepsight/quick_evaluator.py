@@ -133,7 +133,7 @@ class QuickEvaluator(QObject):
 
         if self._discard_polls > 0:
             self._discard_polls -= 1
-            lines = [l for l in lines if "score mate" in l]
+            lines = [l for l in lines if "score mate" in l or "score cp 0" in l]
 
         if self._awaiting_stop:
             bestmove_found = False

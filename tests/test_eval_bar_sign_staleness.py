@@ -162,3 +162,25 @@ def test_quick_eval_applies_output_every_poll(app):
     app.processEvents()
     assert received == [100, 200, 75]
 
+
+def test_quick_eval_shows_stalemate_cp_zero_after_position_change(app):
+    qe = _make_qe(app)
+    qe._discard_polls = 1
+    qe._fen = BLACK_TO_MOVE
+
+    emitted = []
+    qe.eval_ready.connect(
+        lambda ev, bm, side, fen: emitted.append((ev.score_cp, ev.mate, ev.depth, bm))
+    )
+
+    qe._engine.stdout_buffer = [
+        "info depth 1 seldepth 3 multipv 1 score cp 0 nodes 23 pv b6f2 g2f2",
+        "bestmove b6f2",
+    ]
+    qe._poll()
+    app.processEvents()
+
+    assert emitted == [
+        (0.0, None, 1, chess.Move.from_uci("b6f2"))
+    ]
+
