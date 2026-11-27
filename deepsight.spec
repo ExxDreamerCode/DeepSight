@@ -51,6 +51,31 @@ def engine_files(prefix):
     )
 
 
+def resolve_dir(base: str, relative_path: str) -> str:
+    current = Path(base)
+    for part in relative_path.replace("\\", "/").split("/"):
+        if not part or part in (".", ".."):
+            candidate = current / part
+            if not candidate.exists():
+                return str(Path(base) / relative_path)
+            current = candidate
+            continue
+        direct = current / part
+        if direct.exists():
+            current = direct
+            continue
+        try:
+            entries = list(current.iterdir())
+        except OSError:
+            return str(Path(base) / relative_path)
+        lower = part.lower()
+        found = next((entry for entry in entries if entry.name.lower() == lower), None)
+        if found is None:
+            return str(Path(base) / relative_path)
+        current = found
+    return str(current)
+
+
 VERSION = read_version()
 
 engines_dir = os.path.join(ROOT_DIR, "engines")
@@ -71,25 +96,26 @@ if missing_engines and REQUIRE_ENGINES:
     raise SystemExit("Missing engines for a release build: " + ", ".join(missing_engines))
 
 piece_files = []
-pieces_dir = os.path.join(ROOT_DIR, "images", "pieces")
+pieces_dir = resolve_dir(ROOT_DIR, "images/pieces")
 for fname in os.listdir(pieces_dir):
     fpath = os.path.join(pieces_dir, fname)
     if os.path.isfile(fpath):
         piece_files.append((fpath, "images/pieces"))
 
 move_icon_files = []
-moves_dir = os.path.join(ROOT_DIR, "images", "moves")
+moves_dir = resolve_dir(ROOT_DIR, "images/moves")
 for fname in os.listdir(moves_dir):
     fpath = os.path.join(moves_dir, fname)
     if os.path.isfile(fpath):
         move_icon_files.append((fpath, "images/moves"))
 
 book_files = []
-books_dir = os.path.join(ROOT_DIR, "books")
-for fname in os.listdir(books_dir):
-    fpath = os.path.join(books_dir, fname)
-    if os.path.isfile(fpath):
-        book_files.append((fpath, "books"))
+books_dir = resolve_dir(ROOT_DIR, "books")
+if os.path.isdir(books_dir):
+    for fname in os.listdir(books_dir):
+        fpath = os.path.join(books_dir, fname)
+        if os.path.isfile(fpath):
+            book_files.append((fpath, "books"))
 
 sound_files = []
 sounds_dir = os.path.join(ROOT_DIR, "sounds")
