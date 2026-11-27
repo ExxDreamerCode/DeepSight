@@ -197,3 +197,42 @@ def test_game_over_blocks_drag(board, app):
 
     assert len(moves) == 0
     assert not board._drag_active
+
+
+def test_set_move_classification_stores_square_and_label(board):
+    board.set_move_classification(chess.E4, "Blunder")
+    assert board._classification_square == chess.E4
+    assert board._classification_label == "Blunder"
+
+    board.set_move_classification(None, None)
+    assert board._classification_square is None
+    assert board._classification_label is None
+
+
+def test_classification_covers_all_labels():
+    from deepsight.board_widget import CLASSIFICATION_BG
+
+    for label in (
+        "Brilliant", "Great", "Best", "Excellent", "Good",
+        "Book", "Forced", "Inaccuracy", "Mistake", "Miss", "Blunder",
+    ):
+        assert label in CLASSIFICATION_BG, f"missing bg color for {label}"
+        bg = CLASSIFICATION_BG[label]
+        assert bg.alpha() > 0, f"{label} bg should be visible"
+
+
+def test_classification_icons_loaded_for_all_labels(board):
+    for label in (
+        "Brilliant", "Great", "Best", "Excellent", "Good",
+        "Book", "Forced", "Inaccuracy", "Mistake", "Miss", "Blunder",
+    ):
+        assert label in board._classification_icons, f"missing icon for {label}"
+        assert not board._classification_icons[label].isNull(), f"{label} icon is null"
+
+
+def test_blunder_and_brilliant_have_different_colors(board):
+    from deepsight.board_widget import CLASSIFICATION_BG
+
+    assert CLASSIFICATION_BG["Blunder"] != CLASSIFICATION_BG["Brilliant"]
+    assert CLASSIFICATION_BG["Blunder"].red() > CLASSIFICATION_BG["Brilliant"].red()
+    assert CLASSIFICATION_BG["Brilliant"].green() > CLASSIFICATION_BG["Blunder"].green()

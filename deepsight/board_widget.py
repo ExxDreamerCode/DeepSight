@@ -17,6 +17,21 @@ ARROW_BORDER = QColor(0, 200, 0, 180)
 CHECK_COLOR = QColor(245, 145, 45)
 CHECKMATE_COLOR = QColor(220, 45, 45)
 BOARD_BG = QColor(26, 26, 26)
+
+CLASSIFICATION_BG = {
+    "Brilliant": QColor(0x26, 0xC2, 0xA3, 150),
+    "Great": QColor(0x74, 0x9B, 0xBF, 150),
+    "Best": QColor(0x81, 0xB6, 0x4C, 150),
+    "Excellent": QColor(0x81, 0xB6, 0x4C, 150),
+    "Good": QColor(0x95, 0xB7, 0x76, 140),
+    "Book": QColor(0xD5, 0xA4, 0x7D, 140),
+    "Forced": QColor(0x8C, 0x8C, 0x8C, 130),
+    "Inaccuracy": QColor(0xF7, 0xC6, 0x31, 150),
+    "Mistake": QColor(0xFF, 0xA4, 0x59, 150),
+    "Miss": QColor(0xE2, 0x53, 0x4B, 160),
+    "Blunder": QColor(0xFA, 0x41, 0x2D, 160),
+}
+
 COORD_COLOR = QColor(190, 190, 190)
 COORD_MARGIN = 22
 CAPTURE_MARGIN = 30
@@ -42,7 +57,9 @@ class BoardWidget(QWidget):
         self.setMinimumSize(480, 480)
 
         self._pieces: Dict[str, QPixmap] = {}
+        self._classification_icons: Dict[str, QPixmap] = {}
         self._load_pieces()
+        self._load_classification_icons()
 
         self._selected_square: Optional[int] = None
         self._legal_moves: List[chess.Move] = []
@@ -59,6 +76,9 @@ class BoardWidget(QWidget):
         self._drag_pos = QPointF()
         self._drag_target: Optional[int] = None
         self._press_pos = QPointF()
+
+        self._classification_square: Optional[int] = None
+        self._classification_label: Optional[str] = None
 
         self.flipped = False
 
@@ -83,6 +103,32 @@ class BoardWidget(QWidget):
             except Exception as e:
                 print(f"Failed to load piece {filename}: {e}")
 
+    def _load_classification_icons(self):
+        from .engine_registry import get_data_path
+        moves_dir = get_data_path("Images/Moves")
+        icon_map = {
+            "Brilliant": "Brilliant.svg",
+            "Great": "Great.svg",
+            "Best": "Best.svg",
+            "Excellent": "Excellent.svg",
+            "Good": "Good.svg",
+            "Book": "Book.svg",
+            "Forced": "Forced.svg",
+            "Inaccuracy": "Inaccuracy.svg",
+            "Mistake": "Mistake.svg",
+            "Miss": "Miss.svg",
+            "Blunder": "Blunder.svg",
+        }
+
+        for label, filename in icon_map.items():
+            try:
+                path = f"{moves_dir}/{filename}"
+                pixmap = QPixmap(path)
+                if not pixmap.isNull():
+                    self._classification_icons[label] = pixmap
+            except Exception as e:
+                print(f"Failed to load classification icon {filename}: {e}")
+
     def set_best_move_arrow(self, from_sq: Optional[int], to_sq: Optional[int]):
         self._arrow_from = from_sq
         self._arrow_to = to_sq
@@ -98,6 +144,11 @@ class BoardWidget(QWidget):
             self._last_move_squares = [move.from_square, move.to_square]
         else:
             self._last_move_squares.clear()
+        self.update()
+
+    def set_move_classification(self, to_square: Optional[int], label: Optional[str]):
+        self._classification_square = to_square
+        self._classification_label = label
         self.update()
 
     def flip_board(self):
@@ -203,6 +254,9 @@ class BoardWidget(QWidget):
             ):
                 color = LIGHT_SQ_HIGHLIGHT if is_light else DARK_SQ_HIGHLIGHT
 
+            if sq == self._classification_square and self._classification_label:
+                color = CLASSIFICATION_BG.get(self._classification_label, color)
+
             if (
                 (self._selected_square is not None or self._drag_active)
                 and any(m.to_square == sq for m in self._legal_moves)
@@ -252,6 +306,8 @@ class BoardWidget(QWidget):
                 self._drag_pos.x() - self._drag_offset.x(),
                 self._drag_pos.y() - self._drag_offset.y(),
             )
+
+        self._draw_classification_icon(painter)
 
         painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
         painter.setPen(QPen(QColor(100, 100, 100), 2))
@@ -462,6 +518,42 @@ class BoardWidget(QWidget):
         painter.setBrush(QBrush(fill))
         painter.setPen(QPen(border, max(3, int(self._square_size * 0.06))))
         painter.drawEllipse(rect)
+
+    def _draw_classification_icon(self, painter: QPainter):
+        if not self._classification_square or not self._classification_label:
+            return
+
+        pixmap = self._classification_icons.get(self._classification_label)
+        if pixmap is None:
+            return
+
+        x, y = self.square_coords(self._classification_square)
+
+        icon_size = max(8, int(self._square_size * 0.30))
+        margin = int(self._square_size * 0.05)
+        rect = QRectF(
+            x + self._square_size - icon_size - margin,
+            y + margin,
+            icon_size,
+            icon_size,
+        )
+
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        scaled = pixmap.scaled(
+            icon_size, icon_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        offset_x = (rect.width() - scaled.width()) / 2
+        offset_y = (rect.height() - scaled.height()) / 2
+        painter.drawPixmap(
+            int(rect.x() + offset_x),
+            int(rect.y() + offset_y),
+            scaled,
+        )
+        painter.restore()
 
     def _draw_arrow(self, painter: QPainter, from_sq: int, to_sq: int):
         import math

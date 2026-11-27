@@ -1,4 +1,4 @@
-from typing import Optional
+﻿from typing import Optional
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
                              QStatusBar, QLabel, QProgressBar,
@@ -214,6 +214,8 @@ class MainWindow(QMainWindow):
         
         if cur:
             self.board.set_last_move(cur.move)
+            classification = cur.classification or None
+            self.board.set_move_classification(cur.move.to_square, classification)
             if cur.best_move:
                 self.board.set_best_move_arrow(cur.best_move.from_square, cur.best_move.to_square)
             else:
@@ -277,6 +279,7 @@ class MainWindow(QMainWindow):
         else:
             self.board.clear_arrow()
             self.board.set_last_move(None)
+            self.board.set_move_classification(None, None)
             self.eval_bar.clear()
             self.status_label.setText("Start position")
 
@@ -329,6 +332,7 @@ class MainWindow(QMainWindow):
         self._stop_quick_eval(hard=True)
         if self.game_state.load_pgn(text):
             self.board.update()
+            self.board.set_move_classification(None, None)
             self.eval_bar.clear()
             self.move_list.refresh()
             full_moves = self.game_state.moves[-1].move_number if self.game_state.moves else 0
@@ -342,6 +346,7 @@ class MainWindow(QMainWindow):
         self._stop_quick_eval(hard=True)
         if self.game_state.load_fen(fen):
             self.board.update()
+            self.board.set_move_classification(None, None)
             self.eval_bar.clear()
             self.move_list.refresh()
             self.status_label.setText("Loaded FEN position")
@@ -365,6 +370,7 @@ class MainWindow(QMainWindow):
         if am is None:
             return
 
+        self.board.set_move_classification(None, None)
         self.board.set_last_move(move)
         self.board.clear_arrow()
         self.move_list.refresh(
@@ -402,6 +408,7 @@ class MainWindow(QMainWindow):
         self._stop_quick_eval(hard=True)
         self.game_state.clear()
         self.board.update()
+        self.board.set_move_classification(None, None)
         self.eval_bar.clear()
         self.move_list.refresh()
         self.board.clear_arrow()
