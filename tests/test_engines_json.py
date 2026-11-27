@@ -14,7 +14,7 @@ import pytest
 from deepsight.engine_registry import BUILTIN_ENGINES, BUILTIN_ENGINE_VERSIONS
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "Engines"))
+sys.path.insert(0, str(ROOT / "engines"))
 
 import fetch_engines
 
