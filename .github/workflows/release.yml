@@ -100,7 +100,7 @@ jobs:
           python -m pip install -r requirements.txt pyinstaller
 
       - name: Fetch the engines this build ships
-        run: python Engines/fetch_engines.py --target ${{ matrix.target }}
+        run: python engines/fetch_engines.py --target ${{ matrix.target }}
 
       - name: Build the application
         env:
