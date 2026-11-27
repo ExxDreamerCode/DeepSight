@@ -20,6 +20,8 @@ BOARD_BG = QColor(26, 26, 26)
 COORD_COLOR = QColor(190, 190, 190)
 COORD_MARGIN = 22
 CAPTURE_MARGIN = 30
+
+DRAG_THRESHOLD = 6
 PIECE_ORDER = {
     chess.QUEEN: 0,
     chess.ROOK: 1,
@@ -49,6 +51,14 @@ class BoardWidget(QWidget):
         self._arrow_to: Optional[int] = None
 
         self._last_move_squares: List[int] = []
+
+        self._drag_active = False
+        self._drag_from: Optional[int] = None
+        self._drag_piece: Optional[chess.Piece] = None
+        self._drag_offset = QPointF()
+        self._drag_pos = QPointF()
+        self._drag_target: Optional[int] = None
+        self._press_pos = QPointF()
 
         self.flipped = False
 
@@ -91,6 +101,7 @@ class BoardWidget(QWidget):
         self.update()
 
     def flip_board(self):
+        self._end_drag()
         self.flipped = not self.flipped
         self.update()
 
@@ -117,6 +128,43 @@ class BoardWidget(QWidget):
         if self.flipped:
             return chess.square(7 - file, rank)
         return chess.square(file, 7 - rank)
+
+    def _end_drag(self):
+        self._drag_active = False
+        self._drag_from = None
+        self._drag_piece = None
+        self._drag_offset = QPointF()
+        self._drag_pos = QPointF()
+        self._drag_target = None
+
+    def _try_board_move(self, from_sq: int, to_sq: int) -> bool:
+        move = chess.Move(from_sq, to_sq)
+
+        piece = self.game_state.board.piece_at(from_sq)
+        if piece and piece.piece_type == chess.PAWN:
+            promotion_rank = 7 if piece.color == chess.WHITE else 0
+            if chess.square_rank(to_sq) == promotion_rank:
+                move = chess.Move(from_sq, to_sq, promotion=chess.QUEEN)
+
+        if move in self.game_state.board.legal_moves:
+            self._selected_square = None
+            self._legal_moves.clear()
+            self.move_made.emit(move)
+            return True
+        return False
+
+    def _draw_piece(self, painter: QPainter, symbol: str, x: float, y: float) -> None:
+        pixmap = self._pieces.get(symbol)
+        if pixmap is None:
+            return
+        scaled = pixmap.scaled(
+            self._square_size, self._square_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        offset_x = (self._square_size - scaled.width()) // 2
+        offset_y = (self._square_size - scaled.height()) // 2
+        painter.drawPixmap(int(x + offset_x), int(y + offset_y), scaled)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -147,7 +195,18 @@ class BoardWidget(QWidget):
             if sq == self._selected_square:
                 color = LIGHT_SQ_HIGHLIGHT if is_light else DARK_SQ_HIGHLIGHT
 
-            if any(m.to_square == sq for m in self._legal_moves):
+            if (
+                self._drag_active
+                and self._drag_target is not None
+                and sq == self._drag_target
+                and any(m.to_square == sq for m in self._legal_moves)
+            ):
+                color = LIGHT_SQ_HIGHLIGHT if is_light else DARK_SQ_HIGHLIGHT
+
+            if (
+                (self._selected_square is not None or self._drag_active)
+                and any(m.to_square == sq for m in self._legal_moves)
+            ):
                 painter.setBrush(QBrush(color))
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.drawRect(rect)
@@ -179,21 +238,20 @@ class BoardWidget(QWidget):
             if piece is None:
                 continue
 
+            if self._drag_active and sq == self._drag_from:
+                continue
+
             symbol = piece.symbol()
-            if symbol in self._pieces:
-                pixmap = self._pieces[symbol]
-                x, y = self.square_coords(sq)
+            x, y = self.square_coords(sq)
+            self._draw_piece(painter, symbol, x, y)
 
-                scaled = pixmap.scaled(
-                    self._square_size, self._square_size,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
-
-                offset_x = (self._square_size - scaled.width()) // 2
-                offset_y = (self._square_size - scaled.height()) // 2
-
-                painter.drawPixmap(int(x + offset_x), int(y + offset_y), scaled)
+        if self._drag_active and self._drag_piece is not None:
+            self._draw_piece(
+                painter,
+                self._drag_piece.symbol(),
+                self._drag_pos.x() - self._drag_offset.x(),
+                self._drag_pos.y() - self._drag_offset.y(),
+            )
 
         painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
         painter.setPen(QPen(QColor(100, 100, 100), 2))
@@ -453,52 +511,92 @@ class BoardWidget(QWidget):
     def mousePressEvent(self, event):
         if self.game_state.board.is_game_over():
             return
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
 
         board_offset_x, board_offset_y, _ = self._board_geometry()
         x = event.position().x() - board_offset_x
         y = event.position().y() - board_offset_y
+        self._press_pos = QPointF(x, y)
 
         sq = self.screen_to_square(x, y)
         if sq is None:
+            self._end_drag()
+            self.update()
+            return
+        if self._selected_square is not None:
+            if self._try_board_move(self._selected_square, sq):
+                self.update()
+                return
+
+        piece = self.game_state.board.piece_at(sq)
+        if piece is not None and piece.color == self.game_state.board.turn:
+            self._drag_active = True
+            self._drag_from = sq
+            self._drag_piece = piece
+            self._selected_square = None
+            self._legal_moves = [
+                m for m in self.game_state.board.legal_moves
+                if m.from_square == sq
+            ]
+            start_x, start_y = self.square_coords(sq)
+            self._drag_offset = QPointF(x - start_x, y - start_y)
+            self._drag_pos = QPointF(x, y)
+            self._drag_target = sq
+        else:
+            self._end_drag()
+            self.square_clicked.emit(sq)
+
+        self.update()
+
+    def mouseMoveEvent(self, event):
+        if not self._drag_active:
             return
 
-        if self._selected_square is None:
+        board_offset_x, board_offset_y, _ = self._board_geometry()
+        x = event.position().x() - board_offset_x
+        y = event.position().y() - board_offset_y
+        self._drag_pos = QPointF(x, y)
+        self._drag_target = self.screen_to_square(x, y)
+        self.update()
 
+    def mouseReleaseEvent(self, event):
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+
+        board_offset_x, board_offset_y, _ = self._board_geometry()
+        x = event.position().x() - board_offset_x
+        y = event.position().y() - board_offset_y
+        release_pos = QPointF(x, y)
+        sq = self.screen_to_square(x, y)
+
+        was_drag = self._drag_active
+        dragged_far = was_drag and (
+            release_pos - self._press_pos
+        ).manhattanLength() > DRAG_THRESHOLD
+        from_sq = self._drag_from
+
+        self._end_drag()
+
+        if not was_drag:
+            if sq is not None:
+                self.square_clicked.emit(sq)
+            self.update()
+            return
+
+        if dragged_far and sq is not None:
+            self._try_board_move(from_sq, sq)
+        elif sq is not None:
             piece = self.game_state.board.piece_at(sq)
-            if piece and piece.color == self.game_state.board.turn:
+            if piece is not None and piece.color == self.game_state.board.turn:
                 self._selected_square = sq
                 self._legal_moves = [
                     m for m in self.game_state.board.legal_moves
                     if m.from_square == sq
                 ]
-                self.update()
-        else:
-            move = chess.Move(self._selected_square, sq)
-
-            if move.from_square and move.to_square:
-                piece = self.game_state.board.piece_at(move.from_square)
-                if piece and piece.piece_type == chess.PAWN:
-                    promotion_rank = 7 if piece.color == chess.WHITE else 0
-                    target_rank = chess.square_rank(move.to_square)
-                    if target_rank == promotion_rank:
-                        move = chess.Move(move.from_square, move.to_square, promotion=chess.QUEEN)
-
-            if move in self.game_state.board.legal_moves:
+                self.square_clicked.emit(sq)
+            else:
                 self._selected_square = None
                 self._legal_moves.clear()
-                self.move_made.emit(move)
-            else:
 
-                piece = self.game_state.board.piece_at(sq)
-                if piece and piece.color == self.game_state.board.turn:
-                    self._selected_square = sq
-                    self._legal_moves = [
-                        m for m in self.game_state.board.legal_moves
-                        if m.from_square == sq
-                    ]
-                else:
-                    self._selected_square = None
-                    self._legal_moves.clear()
-
-            self.update()
-        self.square_clicked.emit(sq)
+        self.update()
