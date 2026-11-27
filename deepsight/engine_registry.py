@@ -21,7 +21,7 @@ def _with_version(path: str, version: str) -> str:
     stem, dot, ext = path.partition(".")
     return f"{stem}-{version}{dot}{ext}"
 
-_EMBER_FILES = ("Engines/ember.exe", "Engines/Ember.exe", "Engines/ember")
+_EMBER_FILES = ("engines/ember.exe", "engines/Ember.exe", "engines/ember")
 
 # The engines are installed under the version they were built from, so Engines/ shows which one is
 # there - but the bare names still come first in the fallback list, so an engine dropped into the
@@ -32,9 +32,9 @@ BUILTIN_ENGINES: Dict[str, Tuple[str, ...]] = {
         + list(_EMBER_FILES)
     ),
     "Stockfish": (
-        "Engines/stockfish-windows-x86-64.exe",
-        "Engines/stockfish.exe",
-        "Engines/stockfish",
+        "engines/stockfish-windows-x86-64.exe",
+        "engines/stockfish.exe",
+        "engines/stockfish",
     ),
 }
 
@@ -52,6 +52,31 @@ def _cleanup():
     _extracted.clear()
 
 atexit.register(_cleanup)
+
+def _resolve_relative_case_insensitive(base: Path, relative_path: str) -> Optional[Path]:
+    current = base
+    for part in relative_path.replace("\\", "/").split("/"):
+        if not part or part in (".", ".."):
+            candidate = current / part
+            if not candidate.exists():
+                return None
+            current = candidate
+            continue
+        direct = current / part
+        if direct.exists():
+            current = direct
+            continue
+        try:
+            entries = list(current.iterdir())
+        except OSError:
+            return None
+        lower = part.lower()
+        found = next((entry for entry in entries if entry.name.lower() == lower), None)
+        if found is None:
+            return None
+        current = found
+    return current
+
 
 def get_data_path(relative_path: str) -> str:
     candidates = []
@@ -71,6 +96,9 @@ def get_data_path(relative_path: str) -> str:
         path = base / relative_path
         if path.exists():
             return str(path)
+        resolved = _resolve_relative_case_insensitive(base, relative_path)
+        if resolved is not None and resolved.exists():
+            return str(resolved)
 
     return str(candidates[0] / relative_path)
 

@@ -1,4 +1,4 @@
-﻿from typing import Optional
+from typing import Optional
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
                              QStatusBar, QLabel, QProgressBar,
@@ -18,6 +18,7 @@ from .analysis_engine import AnalysisEngine
 from .engine_manager import EngineProtocol
 from .move_classifier import MoveClassifier, BookChecker
 from .quick_evaluator import QuickEvaluator
+from .sound_manager import SoundManager
 
 
 class EngineOutputDialog(QDialog):
@@ -47,7 +48,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1100, 700)
 
         self.game_state = GameState()
-        self.book_checker = BookChecker("Books")
+        self.book_checker = BookChecker("books")
         self.classifier = MoveClassifier(self.book_checker)
         book_count = self.book_checker.load_books()
         print(f"Loaded {book_count} book moves")
@@ -62,6 +63,7 @@ class MainWindow(QMainWindow):
         self._eval_mutex = QMutex()
         self._quick_eval_pending = False
         self._quick_eval_timer: Optional[QTimer] = None
+        self.sound_manager = SoundManager()
 
         self._setup_ui()
         self._setup_menu()
@@ -98,7 +100,7 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(4, 4, 4, 4)
         main_layout.setSpacing(4)
 
-        self.input_panel = InputPanel(self.game_state)
+        self.input_panel = InputPanel(self.game_state, self.sound_manager)
         self.input_panel.setFixedWidth(312)
         main_layout.addWidget(self.input_panel)
 
@@ -123,32 +125,39 @@ class MainWindow(QMainWindow):
         mb = self.menuBar()
         fm = mb.addMenu("File")
         a = QAction("Load PGN...", self)
-        a.triggered.connect(self._menu_load_pgn)
+        a.triggered.connect(lambda: self._ui_click_and(self._menu_load_pgn))
         fm.addAction(a)
         fm.addSeparator()
         a = QAction("Exit", self)
-        a.triggered.connect(self.close)
+        a.triggered.connect(lambda: self._ui_click_and(self.close))
         fm.addAction(a)
 
         vm = mb.addMenu("View")
         a = QAction("Flip Board", self)
-        a.triggered.connect(self.board.flip_board)
+        a.triggered.connect(lambda: self._ui_click_and(self.board.flip_board))
         vm.addAction(a)
+
+        a = QAction("Sound", self)
+        a.setCheckable(True)
+        a.setChecked(self.sound_manager.is_enabled())
+        a.triggered.connect(lambda checked: self._ui_click_and(lambda: self.sound_manager.set_enabled(checked)))
+        vm.addAction(a)
+        vm.addSeparator()
 
         dm = mb.addMenu("Debug")
         a = QAction("Show Engine Output", self)
-        a.triggered.connect(self._debug_dialog.show)
+        a.triggered.connect(lambda: self._ui_click_and(self._debug_dialog.show))
         dm.addAction(a)
         a = QAction("Test Engine Direct", self)
-        a.triggered.connect(self._test_engine_direct)
+        a.triggered.connect(lambda: self._ui_click_and(self._test_engine_direct))
         dm.addAction(a)
 
         am = mb.addMenu("Analysis")
         a = QAction("Start Analysis", self)
-        a.triggered.connect(lambda: self._start_analysis("start"))
+        a.triggered.connect(lambda: self._ui_click_and(lambda: self._start_analysis("start")))
         am.addAction(a)
         a = QAction("Stop", self)
-        a.triggered.connect(self._stop_analysis)
+        a.triggered.connect(lambda: self._ui_click_and(self._stop_analysis))
         am.addAction(a)
 
         hm = mb.addMenu("Help")
@@ -221,6 +230,28 @@ class MainWindow(QMainWindow):
             else:
                 self.board.clear_arrow()
             
+            # Звуковой эффект при навигации по ходам (стрелочки, клик по списку)
+            if idx == 0:
+                board_before = chess.Board()
+                board_before.set_fen(self.game_state._initial_fen)
+            else:
+                board_before = self.game_state.get_position_at(idx - 1)
+
+            is_capture = board_before.is_capture(cur.move)
+            is_castle = board_before.is_castling(cur.move)
+
+            board_before.push(cur.move)
+            is_checkmate = board_before.is_checkmate()
+            is_check = board_before.is_check()
+            board_before.pop()
+
+            self.sound_manager.play_move(
+                capture=is_capture,
+                check=is_check,
+                checkmate=is_checkmate,
+                castle=is_castle,
+            )
+
             ev_after = cur.eval_after
             ev_before_next = None
             if idx + 1 < len(self.game_state.moves):
@@ -282,6 +313,11 @@ class MainWindow(QMainWindow):
             self.board.set_move_classification(None, None)
             self.eval_bar.clear()
             self.status_label.setText("Start position")
+
+    def _ui_click_and(self, func):
+        """Play UI click sound, then call func."""
+        self.sound_manager.play_ui_click()
+        func()
 
     def keyPressEvent(self, event: QKeyEvent):
         if event.key() == Qt.Key.Key_Left:
@@ -358,6 +394,15 @@ class MainWindow(QMainWindow):
         if not self.game_state.board.is_legal(move):
             return
 
+        board = self.game_state.board
+        is_capture = board.is_capture(move)
+        is_castle = board.is_castling(move)
+
+        board.push(move)
+        is_checkmate = board.is_checkmate()
+        is_check = board.is_check()
+        board.pop()
+
         with QMutexLocker(self._eval_mutex):
             self._quick_eval_pending = False
             if self._quick_eval_timer:
@@ -378,6 +423,13 @@ class MainWindow(QMainWindow):
             scroll=False
         )
         self._skip_live = True
+
+        self.sound_manager.play_move(
+            capture=is_capture,
+            check=is_check,
+            checkmate=is_checkmate,
+            castle=is_castle,
+        )
 
         self.status_label.setText(f"Move {len(self.game_state.moves)}: {am.san}")
 
@@ -449,8 +501,31 @@ class MainWindow(QMainWindow):
         self.board.clear_arrow()
         self._skip_live = True
         cur = self.game_state.current_move
+        idx = self.game_state.current_move_index
         if cur:
             self.status_label.setText(f"Variant: {cur.san}")
+
+            # Звуковой эффект при активации ветки варианта
+            if idx == 0:
+                board_before = chess.Board()
+                board_before.set_fen(self.game_state._initial_fen)
+            else:
+                board_before = self.game_state.get_position_at(idx - 1)
+
+            is_capture = board_before.is_capture(cur.move)
+            is_castle = board_before.is_castling(cur.move)
+
+            board_before.push(cur.move)
+            is_checkmate = board_before.is_checkmate()
+            is_check = board_before.is_check()
+            board_before.pop()
+
+            self.sound_manager.play_move(
+                capture=is_capture,
+                check=is_check,
+                checkmate=is_checkmate,
+                castle=is_castle,
+            )
 
         self._quick_evaluate()
 
@@ -658,6 +733,26 @@ class MainWindow(QMainWindow):
 
         self.move_list.refresh_move(idx)
         self.move_list.select_move(idx, emit_signal=True, scroll=False)
+
+        if idx == 0:
+            board = chess.Board()
+            board.set_fen(self.game_state._initial_fen)
+        else:
+            board = self.game_state.get_position_at(idx - 1)
+
+        is_capture = board.is_capture(md.move)
+        is_castle = board.is_castling(md.move)
+        board.push(md.move)
+        is_checkmate = board.is_checkmate()
+        is_check = board.is_check()
+        board.pop()
+
+        self.sound_manager.play_move(
+            capture=is_capture,
+            check=is_check,
+            checkmate=is_checkmate,
+            castle=is_castle,
+        )
 
     def _on_analysis_complete(self):
         self.progress_bar.setVisible(False)

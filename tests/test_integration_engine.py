@@ -50,7 +50,7 @@ def analyse(pgn, time_per_move=120, timeout=240, game_state=None, **settings):
         assert game_state.load_pgn(pgn), "test PGN must parse"
 
     classifier = MoveClassifier(
-        book_checker=BookChecker(str(ROOT / "Books")),
+        book_checker=BookChecker(str(ROOT / "books")),
         config=ClassificationConfig(),
     )
     analysis = AnalysisEngine(game_state, find_engine(), EngineProtocol.UCI, classifier)

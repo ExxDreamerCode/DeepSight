@@ -58,7 +58,7 @@ def test_the_pins_install_engines_where_the_registry_looks(pins):
     for target in pins["targets"]:
         for name, entry in target["engines"].items():
             installed = entry["install_as"]
-            assert installed.startswith("Engines/"), (target["id"], name)
+            assert installed.startswith("engines/"), (target["id"], name)
             assert installed in BUILTIN_ENGINES[name.capitalize()], (target["id"], installed)
 
 
@@ -190,7 +190,7 @@ def test_the_build_is_pinned_to_a_tag_and_a_commit(pins):
     stockfish = fetch_engines.find_target(pins, "linux-arm64")["engines"]["stockfish"]
     build = stockfish["build"]
 
-    assert stockfish["install_as"] == "Engines/stockfish"
+    assert stockfish["install_as"] == "engines/stockfish"
     assert build["tag"] == "sf_18"
     assert build["make"] == "profile-build"
     assert build["arch"] == "armv8"

@@ -451,7 +451,7 @@ def test_illegal_played_move_does_not_crash():
 
 
 def test_every_label_has_an_icon():
-    icons = Path(__file__).resolve().parent.parent / "Images" / "Moves"
+    icons = Path(__file__).resolve().parent.parent / "images" / "moves"
     if not icons.is_dir():
         pytest.skip("icon directory not available")
 

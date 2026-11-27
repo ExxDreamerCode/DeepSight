@@ -53,7 +53,7 @@ def engine_files(prefix):
 
 VERSION = read_version()
 
-engines_dir = os.path.join(ROOT_DIR, "Engines")
+engines_dir = os.path.join(ROOT_DIR, "engines")
 missing_engines = [prefix for prefix in ("ember", "stockfish") if not engine_files(prefix)]
 
 download_script = os.path.join(engines_dir, "download-engines.bat")
@@ -71,32 +71,40 @@ if missing_engines and REQUIRE_ENGINES:
     raise SystemExit("Missing engines for a release build: " + ", ".join(missing_engines))
 
 piece_files = []
-pieces_dir = os.path.join(ROOT_DIR, "Images", "Pieces")
+pieces_dir = os.path.join(ROOT_DIR, "images", "pieces")
 for fname in os.listdir(pieces_dir):
     fpath = os.path.join(pieces_dir, fname)
     if os.path.isfile(fpath):
-        piece_files.append((fpath, "Images/Pieces"))
+        piece_files.append((fpath, "images/pieces"))
 
 move_icon_files = []
-moves_dir = os.path.join(ROOT_DIR, "Images", "Moves")
+moves_dir = os.path.join(ROOT_DIR, "images", "moves")
 for fname in os.listdir(moves_dir):
     fpath = os.path.join(moves_dir, fname)
     if os.path.isfile(fpath):
-        move_icon_files.append((fpath, "Images/Moves"))
+        move_icon_files.append((fpath, "images/moves"))
 
 book_files = []
-books_dir = os.path.join(ROOT_DIR, "Books")
+books_dir = os.path.join(ROOT_DIR, "books")
 for fname in os.listdir(books_dir):
     fpath = os.path.join(books_dir, fname)
     if os.path.isfile(fpath):
-        book_files.append((fpath, "Books"))
+        book_files.append((fpath, "books"))
+
+sound_files = []
+sounds_dir = os.path.join(ROOT_DIR, "sounds")
+if os.path.isdir(sounds_dir):
+    for fname in os.listdir(sounds_dir):
+        fpath = os.path.join(sounds_dir, fname)
+        if os.path.isfile(fpath):
+            sound_files.append((fpath, "sounds"))
 
 engine_files_to_add = []
 for prefix in ("ember", "stockfish"):
     for fname in engine_files(prefix):
-        engine_files_to_add.append((os.path.join(engines_dir, fname), "Engines"))
+        engine_files_to_add.append((os.path.join(engines_dir, fname), "engines"))
 
-all_datas = piece_files + move_icon_files + book_files + engine_files_to_add
+all_datas = piece_files + move_icon_files + book_files + sound_files + engine_files_to_add
 
 # Stockfish is GPL-3.0, so its license text and the notices have to travel with the build and not
 # only live in the repository. A missing notice fails the build on purpose - a build without them
@@ -114,7 +122,7 @@ all_datas = all_datas + notice_files
 icon_file = None
 icon_names = {"win32": "DeepSight.ico", "darwin": "DeepSight.icns"}
 if sys.platform in icon_names:
-    candidate = os.path.join(ROOT_DIR, "Images", icon_names[sys.platform])
+    candidate = os.path.join(ROOT_DIR, "images", icon_names[sys.platform])
     if os.path.isfile(candidate):
         icon_file = candidate
 
@@ -169,6 +177,7 @@ a = Analysis(
         'PyQt6',
         'PyQt6.QtCore',
         'PyQt6.QtGui',
+        'PyQt6.QtMultimedia',
         'PyQt6.QtWidgets',
         'chess',
         'chess.pgn',

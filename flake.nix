@@ -26,8 +26,8 @@
               let
                 relPath = lib.removePrefix (toString ./. + "/") (toString path);
               in
-              !(relPath == "Engines"
-                || lib.hasPrefix "Engines/" relPath
+              !(relPath == "engines"
+                || lib.hasPrefix "engines/" relPath
                 || relPath == "result"
                 || lib.hasPrefix "result/" relPath
                 || lib.hasPrefix "result-" relPath);
@@ -85,8 +85,8 @@
               runHook preInstall
 
               mkdir -p "$out/bin" "$out/share/deepsight"
-              cp -R main.py deepsight Images Books LICENSE README.md THIRD_PARTY_NOTICES.md licenses "$out/share/deepsight/"
-              cp -R ${nativeEngines}/Engines "$out/share/deepsight/"
+              cp -R main.py deepsight images books LICENSE README.md THIRD_PARTY_NOTICES.md licenses "$out/share/deepsight/"
+              cp -R ${nativeEngines}/Engines "$out/share/deepsight/engines"
 
               makeWrapper ${pythonEnv}/bin/python "$out/bin/deepsight" \
                 --add-flags "$out/share/deepsight/main.py" \

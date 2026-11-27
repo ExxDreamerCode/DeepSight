@@ -8,7 +8,7 @@ Russian version: [docs/README.ru.md](docs/README.ru.md).
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 [![CI](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml/badge.svg)](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml)
 
-<img alt="DeepSight window: chessboard, evaluation bar and side panels" src="Images/screenshot.png" width="860">
+<img alt="DeepSight window: chessboard, evaluation bar and side panels" src="images/screenshot.png" width="860">
 
 ---
 
@@ -90,7 +90,7 @@ DEEPSIGHT_ONEDIR=1 DEEPSIGHT_REQUIRE_ENGINES=1 DEEPSIGHT_UPX=0 pyinstaller deeps
 - `DEEPSIGHT_REQUIRE_ENGINES` fails the build when an engine is missing, so a release cannot go out without them.
 - `DEEPSIGHT_UPX=0` keeps UPX away from the executables, which some antivirus products flag.
 
-On macOS the same build also produces `dist/DeepSight.app` with the version in its `Info.plist`, and on Windows the `.exe` carries the version, the product name and the copyright as file properties. Place `Images/DeepSight.ico` or `Images/DeepSight.icns` next to the other images to give the builds an icon; without it they get the PyInstaller default.
+On macOS the same build also produces `dist/DeepSight.app` with the version in its `Info.plist`, and on Windows the `.exe` carries the version, the product name and the copyright as file properties. Place `images/DeepSight.ico` or `images/DeepSight.icns` next to the other images to give the builds an icon; without it they get the PyInstaller default.
 
 ---
 

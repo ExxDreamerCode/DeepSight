@@ -23,9 +23,10 @@ class InputPanel(QWidget):
     clear_requested = pyqtSignal()
     engine_changed = pyqtSignal()
 
-    def __init__(self, game_state: GameState, parent=None):
+    def __init__(self, game_state: GameState, sound_manager=None, parent=None):
         super().__init__(parent)
         self.game_state = game_state
+        self.sound_manager = sound_manager
 
         self._engine_type = "ember"
         self._external_engine_path: Optional[str] = None
@@ -58,7 +59,7 @@ class InputPanel(QWidget):
         self.external_path_label.setStyleSheet("color: #aaa; padding: 4px; font-size: 11px;")
         ext_row_layout.addWidget(self.external_path_label, 1)
         self.btn_select_external = QPushButton("Browse...")
-        self.btn_select_external.clicked.connect(self._select_external_engine)
+        self.btn_select_external.clicked.connect(lambda: self._ui_click_and(self._select_external_engine))
         ext_row_layout.addWidget(self.btn_select_external)
         self.external_row.setVisible(False)
         engine_layout.addWidget(self.external_row)
@@ -81,7 +82,7 @@ class InputPanel(QWidget):
         pgn_layout = QVBoxLayout(pgn_group)
 
         self.btn_load_pgn = QPushButton("Load PGN File...")
-        self.btn_load_pgn.clicked.connect(self._load_pgn_file)
+        self.btn_load_pgn.clicked.connect(lambda: self._ui_click_and(self._load_pgn_file))
         pgn_layout.addWidget(self.btn_load_pgn)
 
         self.pgn_text = QTextEdit()
@@ -95,11 +96,11 @@ class InputPanel(QWidget):
 
         pgn_buttons = QHBoxLayout()
         self.btn_parse_pgn = QPushButton("Load PGN")
-        self.btn_parse_pgn.clicked.connect(self._parse_pgn)
+        self.btn_parse_pgn.clicked.connect(lambda: self._ui_click_and(self._parse_pgn))
         pgn_buttons.addWidget(self.btn_parse_pgn)
 
         self.btn_clear = QPushButton("Clear")
-        self.btn_clear.clicked.connect(self.clear_requested.emit)
+        self.btn_clear.clicked.connect(lambda: self._ui_click_and(self.clear_requested.emit))
         pgn_buttons.addWidget(self.btn_clear)
         pgn_layout.addLayout(pgn_buttons)
 
@@ -112,7 +113,7 @@ class InputPanel(QWidget):
         self.fen_input.setStyleSheet("background-color: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 4px; padding: 4px;")
         fen_layout.addWidget(self.fen_input)
         self.btn_load_fen = QPushButton("Set Position")
-        self.btn_load_fen.clicked.connect(self._load_fen)
+        self.btn_load_fen.clicked.connect(lambda: self._ui_click_and(self._load_fen))
         fen_layout.addWidget(self.btn_load_fen)
         layout.addWidget(fen_group)
 
@@ -123,7 +124,7 @@ class InputPanel(QWidget):
         self.move_input_field.setStyleSheet("background-color: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 4px; padding: 4px;")
         move_layout.addWidget(self.move_input_field)
         self.btn_send_move = QPushButton("Make Move")
-        self.btn_send_move.clicked.connect(self._send_manual_move)
+        self.btn_send_move.clicked.connect(lambda: self._ui_click_and(self._send_manual_move))
         move_layout.addWidget(self.btn_send_move)
         layout.addWidget(move_group)
 
@@ -169,7 +170,7 @@ class InputPanel(QWidget):
         analysis_buttons.setSpacing(6)
 
         self.btn_start = QPushButton("Start")
-        self.btn_start.clicked.connect(self._start_analysis)
+        self.btn_start.clicked.connect(lambda: self._ui_click_and(self._start_analysis))
         self.btn_start.setMinimumHeight(BUTTON_HEIGHT)
         self.btn_start.setStyleSheet("""
             QPushButton { background-color: #2a6e3f; color: #fff; padding: 4px 8px; border-radius: 4px; }
@@ -179,7 +180,7 @@ class InputPanel(QWidget):
         analysis_buttons.addWidget(self.btn_start)
 
         self.btn_stop = QPushButton("Stop")
-        self.btn_stop.clicked.connect(self.analysis_stopped.emit)
+        self.btn_stop.clicked.connect(lambda: self._ui_click_and(self.analysis_stopped.emit))
         self.btn_stop.setEnabled(False)
         self.btn_stop.setMinimumHeight(BUTTON_HEIGHT)
         self.btn_stop.setStyleSheet("""
@@ -195,7 +196,7 @@ class InputPanel(QWidget):
             QPushButton { background-color: #3a3a5a; color: #ddd; padding: 4px 8px; border-radius: 4px; }
             QPushButton:hover { background-color: #5a5a8a; }
         """)
-        self.btn_flip.clicked.connect(self._flip_board)
+        self.btn_flip.clicked.connect(lambda: self._ui_click_and(self._flip_board))
         analysis_buttons.addWidget(self.btn_flip)
 
         analysis_layout.addLayout(analysis_buttons)
@@ -214,7 +215,16 @@ class InputPanel(QWidget):
 
         self._update_engine_status()
 
+    def _ui_click_and(self, func):
+        """Play UI click sound, then call func."""
+        if self.sound_manager:
+            self.sound_manager.play_ui_click()
+        func()
+
     def _on_engine_type_changed(self, index: int):
+        self._ui_click_and(self._do_engine_type_changed)
+
+    def _do_engine_type_changed(self):
         engine_type = self.engine_type_combo.currentData()
         self._engine_type = engine_type
         self.external_row.setVisible(engine_type == "external")

@@ -63,6 +63,34 @@ together.
 Unlike the engines, the two Python libraries are imported rather than run as separate processes, so
 they are part of the application itself and their licenses travel with any build that bundles them.
 
+## FFmpeg
+
+- **Version:** 7.1.3 (bundled with PyQt6-Qt6 / Qt Multimedia)
+- **Where it comes from:** https://ffmpeg.org/
+- **License:** GNU Lesser General Public License, version 2.1 or later - full text at https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+- **Used for:** audio decoding in Qt Multimedia (`QSoundEffect`), which plays the move sounds (move, capture, check, checkmate, castle)
+- **Copyright:** the FFmpeg developers
+
+FFmpeg is not shipped as a standalone binary - it is part of the `PyQt6-Qt6` wheel that Qt Multimedia
+depends on, and is loaded dynamically by Qt at runtime.
+
+## Move sounds
+
+- **Where they come from:** sound effects bundled in the `Sounds/` directory are not original
+  DeepSight audio. They are converted from MP3 files obtained from public third-party sources,
+  primarily:
+  - [Lichess](https://github.com/lichess-org/lila/tree/master/public/sound/sfx) — move, capture,
+    check and other game sounds
+  - additional sound files downloaded by the project maintainer from public sources
+- **License:** the original MP3 files are distributed by their respective authors under their own
+  terms; DeepSight does not claim ownership of them and does not modify the audio beyond format
+  conversion (MP3 → WAV).
+- **Used for:** `QSoundEffect` playback in `deepsight/sound_manager.py` — move, capture, check,
+  checkmate and castle sounds played during gameplay, analysis and UI navigation.
+- **Copyright:** Lichess (lichess.org) and the respective authors of the other sound files.
+- **Trademarks:** Lichess is a trademark of its respective owner. DeepSight is not affiliated with,
+  endorsed by or sponsored by Lichess.
+
 ## Chess.com move classification
 
 - **What is borrowed:** the label set from Chess.com's Game Review - Brilliant, Great, Best,

@@ -86,7 +86,7 @@ class BoardWidget(QWidget):
 
     def _load_pieces(self):
         from .engine_registry import get_data_path
-        pieces_dir = get_data_path("Images/Pieces")
+        pieces_dir = get_data_path("images/pieces")
         piece_map = {
             'K': 'w_K.png', 'Q': 'w_Q.png', 'R': 'w_R.png',
             'B': 'w_B.png', 'N': 'w_N.png', 'P': 'w_P.png',
@@ -105,7 +105,7 @@ class BoardWidget(QWidget):
 
     def _load_classification_icons(self):
         from .engine_registry import get_data_path
-        moves_dir = get_data_path("Images/Moves")
+        moves_dir = get_data_path("images/moves")
         icon_map = {
             "Brilliant": "Brilliant.svg",
             "Great": "Great.svg",

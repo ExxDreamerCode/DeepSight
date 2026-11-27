@@ -174,7 +174,7 @@ class IconLabel(QLabel):
     @classmethod
     def _load_icons(cls):
         from .engine_registry import get_data_path
-        moves_dir = get_data_path("Images/Moves")
+        moves_dir = get_data_path("images/moves")
         moves_path = Path(moves_dir)
         if moves_path.exists():
             for icon_file in moves_path.glob("*.svg"):

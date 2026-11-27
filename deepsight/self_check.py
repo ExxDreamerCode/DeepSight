@@ -11,14 +11,14 @@ from .engine_registry import BUILTIN_ENGINE_VERSIONS, get_data_path, get_engine_
 HANDSHAKE_TIMEOUT = 30
 
 _DATA_FILES = {
-    "book": "Books/book.bin",
+    "book": "books/book.bin",
     "notices": "THIRD_PARTY_NOTICES.md",
     "stockfish_license": "licenses/GPL-3.0.txt",
 }
 
 _DATA_DIRS = {
-    "pieces": "Images/Pieces",
-    "move_icons": "Images/Moves",
+    "pieces": "images/pieces",
+    "move_icons": "images/moves",
 }
 
 def _count_data_files(relative_path: str) -> int:

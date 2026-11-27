@@ -8,7 +8,7 @@ English version: [../README.md](../README.md).
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 [![CI](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml/badge.svg)](https://github.com/ExxDreamerCode/DeepSight/actions/workflows/ci.yml)
 
-<img alt="Окно DeepSight: доска, шкала оценки и боковые панели" src="../Images/screenshot.png" width="860">
+<img alt="Окно DeepSight: доска, шкала оценки и боковые панели" src="../images/screenshot.png" width="860">
 
 ---
 
@@ -90,7 +90,7 @@ DEEPSIGHT_ONEDIR=1 DEEPSIGHT_REQUIRE_ENGINES=1 DEEPSIGHT_UPX=0 pyinstaller deeps
 - `DEEPSIGHT_REQUIRE_ENGINES` роняет сборку, если движка нет, — релиз не может уйти без них.
 - `DEEPSIGHT_UPX=0` не подпускает UPX к исполняемым файлам: на упакованные им бинарники ругаются некоторые антивирусы.
 
-На macOS та же сборка дополнительно создаёт `dist/DeepSight.app` с версией в `Info.plist`, а в Windows `.exe` несёт версию, имя продукта и копирайт как свойства файла. Положите `Images/DeepSight.ico` или `Images/DeepSight.icns` рядом с остальными картинками, чтобы у сборок появилась иконка; без неё они получают стандартную от PyInstaller.
+На macOS та же сборка дополнительно создаёт `dist/DeepSight.app` с версией в `Info.plist`, а в Windows `.exe` несёт версию, имя продукта и копирайт как свойства файла. Положите `images/DeepSight.ico` или `images/DeepSight.icns` рядом с остальными картинками, чтобы у сборок появилась иконка; без неё они получают стандартную от PyInstaller.
 
 ---
 

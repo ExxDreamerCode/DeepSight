@@ -16,7 +16,7 @@ from .expected_points import Score, expected_points_loss
 from .see import static_exchange_evaluation
 
 class BookChecker:
-    def __init__(self, books_dir: str = "Books"):
+    def __init__(self, books_dir: str = "books"):
         self.books_dir = books_dir
         self.book_moves: Set[str] = set()
         self._polyglot_readers: List[chess.polyglot.MemoryMappedReader] = []
