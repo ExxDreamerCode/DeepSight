@@ -21,6 +21,7 @@ class InputPanel(QWidget):
     analysis_stopped = pyqtSignal()
     move_input = pyqtSignal(str)
     clear_requested = pyqtSignal()
+    engine_changed = pyqtSignal()
 
     def __init__(self, game_state: GameState, parent=None):
         super().__init__(parent)
@@ -218,6 +219,7 @@ class InputPanel(QWidget):
         self._engine_type = engine_type
         self.external_row.setVisible(engine_type == "external")
         self._update_engine_status()
+        self.engine_changed.emit()
 
     def _select_external_engine(self):
         file_path, _ = QFileDialog.getOpenFileName(

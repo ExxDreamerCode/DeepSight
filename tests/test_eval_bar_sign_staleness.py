@@ -197,3 +197,15 @@ def test_eval_bar_zero_score_has_no_minus_sign(window, app):
     app.processEvents()
     assert window.eval_bar._eval_text() == "-0.50"
 
+
+def test_engine_switch_signals_re_evaluation_of_current_position(window, app):
+    emitted = []
+    window.input_panel.engine_changed.connect(lambda: emitted.append(1))
+
+    combo = window.input_panel.engine_type_combo
+    target = 1 if combo.currentIndex() == 0 else 0
+    combo.setCurrentIndex(target)
+    app.processEvents()
+
+    assert emitted, "switching the engine must request a quick re-evaluation of the current position"
+

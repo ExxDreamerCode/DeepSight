@@ -187,6 +187,7 @@ class MainWindow(QMainWindow):
         self.move_list.navigation_requested.connect(self._on_navigation_requested)
         self.move_list.branch_activated.connect(self._on_branch_activated)
         self.input_panel.analysis_stopped.connect(self._stop_quick_eval)
+        self.input_panel.engine_changed.connect(self._quick_evaluate)
 
     def _on_navigation_requested(self, direction: str):
         if direction == "forward":
