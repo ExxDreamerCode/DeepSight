@@ -85,13 +85,14 @@ class EvalBar(QWidget):
             path = self._round_top_rect(white_rect, 4)
             painter.drawPath(path)
 
-        painter.setPen(QPen(QColor(200, 200, 200), 2))
-        painter.drawLine(
-            int(bar_rect.x()),
-            int(bar_rect.y() + white_height),
-            int(bar_rect.x() + bar_rect.width()),
-            int(bar_rect.y() + white_height)
-        )
+        if 0.0 < white_percent < 1.0:
+            painter.setPen(QPen(QColor(200, 200, 200), 2))
+            painter.drawLine(
+                int(bar_rect.x()),
+                int(bar_rect.y() + white_height),
+                int(bar_rect.x() + bar_rect.width()),
+                int(bar_rect.y() + white_height)
+            )
 
         if has_text:
             label_rect = QRectF(2, h - text_area_height + 3, w - 4, text_area_height - 6)
