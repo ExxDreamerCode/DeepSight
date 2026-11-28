@@ -556,8 +556,6 @@ class BoardWidget(QWidget):
         painter.restore()
 
     def _draw_arrow(self, painter: QPainter, from_sq: int, to_sq: int):
-        import math
-
         x1, y1 = self.square_coords(from_sq)
         x2, y2 = self.square_coords(to_sq)
 
@@ -576,29 +574,6 @@ class BoardWidget(QWidget):
         painter.setPen(QPen(ARROW_COLOR, self._square_size * 0.15,
                            Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         painter.drawLine(p1, p2)
-
-        dx = cx2 - cx1
-        dy = cy2 - cy1
-        angle_rad = math.atan2(dy, dx)
-        angle_deg = math.degrees(angle_rad)
-
-        arrow_size = self._square_size * 0.35
-        arrow_width = self._square_size * 0.25
-
-        painter.setBrush(QBrush(ARROW_BORDER))
-        painter.setPen(Qt.PenStyle.NoPen)
-
-        painter.save()
-        painter.translate(p2)
-        painter.rotate(angle_deg)
-
-        triangle = [
-            QPointF(0, 0),
-            QPointF(-arrow_size, -arrow_width / 2),
-            QPointF(-arrow_size, arrow_width / 2)
-        ]
-        painter.drawPolygon(triangle)
-        painter.restore()
 
     def mousePressEvent(self, event):
         if self.game_state.board.is_game_over():
